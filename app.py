@@ -78,7 +78,7 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
         "img-src 'self' data: blob:; "
-        "connect-src 'self';"
+        "connect-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com;"
     )
     return response
 
@@ -1944,8 +1944,16 @@ def pwa_manifest():
 def service_worker():
     sw = """
 self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('fetch',   e => {
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', e => {
+  // Skip non-GET and cross-origin requests — let the browser handle them directly.
+  // This prevents the service worker from intercepting CDN/font fetches which
+  // are blocked by connect-src 'self' when proxied through the SW.
+  if (e.request.method !== 'GET') return;
+  if (!e.request.url.startsWith(self.location.origin)) return;
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
 });
 """
     return Response(sw, mimetype='application/javascript')
