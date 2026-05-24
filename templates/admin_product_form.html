@@ -1,0 +1,190 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ action }} Product — AgriFortress{% endblock %}
+{% block page_title %}{{ action }} Product{% endblock %}
+
+{% block content %}
+<div style="max-width:860px;">
+  <div class="ag-card">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-{% if action == 'Add' %}plus-circle-fill{% else %}pencil-fill{% endif %}"></i>
+        {{ action }} Product
+      </h6>
+      <a href="{{ url_for('admin_products') }}" class="btn-o sm">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+    </div>
+    <div class="ag-card-body">
+      <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+
+          <!-- Basic Info -->
+          <div class="col-12"><span class="form-sec">Basic Information</span></div>
+
+          <div class="col-md-8">
+            <label class="ag-label">Product Name <span class="req">*</span></label>
+            <input type="text" name="name" class="form-control" required
+                   value="{{ product.name if product else '' }}"
+                   placeholder="e.g. Premium Hybrid Rice Seed OB-918">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Category <span class="req">*</span></label>
+            <select name="category" class="form-select" required>
+              <option value="">Select…</option>
+              {% for cat in ['Seeds','Fertilizer','Tools','Equipment'] %}
+              <option value="{{ cat }}" {% if product and product.category == cat %}selected{% endif %}>
+                {% if cat == 'Seeds' %}🌱{% elif cat == 'Fertilizer' %}🧪{% elif cat == 'Tools' %}🔧{% else %}🚜{% endif %}
+                {{ cat }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="ag-label">Crop Type</label>
+            <input type="text" name="crop_type" class="form-control"
+                   value="{{ product.crop_type if product else '' }}"
+                   placeholder="e.g. Rice, Corn, Vegetables">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Season</label>
+            <input type="text" name="season_applicable" class="form-control"
+                   value="{{ product.season_applicable if product else '' }}"
+                   placeholder="e.g. Wet Season, All Season">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Packaging</label>
+            <input type="text" name="packaging_type" class="form-control"
+                   value="{{ product.packaging_type if product else '' }}"
+                   placeholder="e.g. 5kg bag, 50kg sack">
+          </div>
+
+          <!-- Pricing -->
+          <div class="col-12"><span class="form-sec">Pricing</span></div>
+
+          <div class="col-md-4">
+            <label class="ag-label">Original Price (₱) <span class="req">*</span></label>
+            <input type="number" name="original_price" class="form-control"
+                   step="0.01" min="0" required
+                   value="{{ product.original_price if product else '' }}"
+                   id="origPrice" oninput="calcPrice()">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Discount %</label>
+            <input type="number" name="discount_percentage" class="form-control"
+                   step="0.1" min="0" max="100"
+                   value="{{ product.discount_percentage if product else 0 }}"
+                   id="discPct" oninput="calcPrice()">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Sale Price (auto)</label>
+            <input type="text" class="form-control" id="salePreview" readonly
+                   style="background:var(--surf2);font-weight:700;color:var(--grn);">
+          </div>
+
+          <!-- Inventory -->
+          <div class="col-12"><span class="form-sec">Inventory</span></div>
+
+          <div class="col-md-4">
+            <label class="ag-label">Stock Quantity</label>
+            <input type="number" name="stock_quantity" class="form-control" min="0"
+                   value="{{ product.stock_quantity if product else 0 }}">
+          </div>
+          <div class="col-md-4">
+            <label class="ag-label">Low Stock Threshold</label>
+            <input type="number" name="stock_threshold" class="form-control" min="0"
+                   value="{{ product.stock_threshold if product else 10 }}">
+            <div class="form-text">Alert when stock falls below this</div>
+          </div>
+
+          <!-- Details -->
+          <div class="col-12"><span class="form-sec">Details</span></div>
+
+          <div class="col-12">
+            <label class="ag-label">Description</label>
+            <textarea name="description" class="form-control" rows="3"
+                      placeholder="Product description…">{{ product.description if product else '' }}</textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="ag-label">Application Instructions</label>
+            <textarea name="application_instructions" class="form-control" rows="3"
+                      placeholder="How to use…">{{ product.application_instructions if product else '' }}</textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="ag-label">Safety Notes</label>
+            <textarea name="safety_notes" class="form-control" rows="3"
+                      placeholder="Safety precautions…">{{ product.safety_notes if product else '' }}</textarea>
+          </div>
+
+          <!-- Image -->
+          <div class="col-12"><span class="form-sec">Product Image</span></div>
+
+          <div class="col-md-6">
+            <label class="ag-label">Upload Image</label>
+            <input type="file" name="image" class="form-control"
+                   accept=".jpg,.jpeg,.png,.gif,.webp">
+            <div class="form-text">Watermark applied automatically. Max 16MB.</div>
+            {% if product and product.image_path %}
+            <div style="margin-top:6px;font-size:.78rem;color:var(--grn);font-weight:600;">
+              <i class="bi bi-check-circle"></i> Image already uploaded
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Settings -->
+          <div class="col-12"><span class="form-sec">Settings</span></div>
+
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="auto_post_enabled"
+                     id="autoPostChk"
+                     {% if product and product.auto_post_enabled %}checked{% endif %}>
+              <label class="form-check-label" for="autoPostChk"
+                     style="font-size:.875rem;font-weight:600;">
+                <i class="bi bi-facebook text-primary"></i>
+                Auto-post to Facebook when discounted
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="is_active"
+                     id="isActiveChk"
+                     {% if not product or product.is_active %}checked{% endif %}>
+              <label class="form-check-label" for="isActiveChk"
+                     style="font-size:.875rem;font-weight:600;">
+                <i class="bi bi-eye" style="color:var(--grn);"></i>
+                Active (visible to customers)
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="col-12 d-flex gap-2 pt-2">
+            <button type="submit" class="btn-p lg">
+              <i class="bi bi-check-lg"></i>
+              {% if action == 'Add' %}Add Product{% else %}Save Changes{% endif %}
+            </button>
+            <a href="{{ url_for('admin_products') }}" class="btn-o" style="padding:11px 22px;">Cancel</a>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calcPrice() {
+  var orig = parseFloat(document.getElementById('origPrice').value) || 0;
+  var disc = parseFloat(document.getElementById('discPct').value) || 0;
+  var sale = orig * (1 - disc / 100);
+  var el = document.getElementById('salePreview');
+  el.value = sale > 0 && disc > 0 ? '₱' + sale.toFixed(2) : (orig > 0 ? '₱' + orig.toFixed(2) : '');
+}
+document.addEventListener('DOMContentLoaded', calcPrice);
+</script>
+{% endblock %}

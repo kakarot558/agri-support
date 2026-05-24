@@ -1,0 +1,277 @@
+{% extends "admin_base.html" %}
+{% block title %}Campaigns — AgriFortress{% endblock %}
+{% block page_title %}Campaigns{% endblock %}
+
+{% block extra_css %}
+<style>
+.cd-live { display:inline-flex; align-items:center; gap:5px; font-size:.76rem; font-weight:700; }
+.cd-live.active { color:var(--red); }
+.cd-live.scheduled { color:#0284c7; }
+.cd-live.ended { color:var(--ink4); }
+.progress-dur {
+  height:6px; border-radius:3px; background:var(--bdr2);
+  overflow:hidden; margin-top:4px; width:120px;
+}
+.progress-dur-fill { height:100%; background:var(--grn); border-radius:3px; transition:width .3s; }
+.progress-dur-fill.ended { background:var(--ink4); }
+.dur-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:.7rem; font-weight:700; padding:3px 9px;
+  border-radius:100px; letter-spacing:.02em;
+}
+.dur-pill.active { background:#fee2e2; color:#b91c1c; }
+.dur-pill.scheduled { background:#e0f2fe; color:#0369a1; }
+.dur-pill.ended { background:var(--surf3); color:var(--ink4); }
+.camp-row-actions { display:flex; gap:5px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if campaigns %}
+{% set na = campaigns|selectattr('status','equalto','Active')|list|length %}
+{% set ns = campaigns|selectattr('status','equalto','Scheduled')|list|length %}
+{% set ne = campaigns|selectattr('status','equalto','Ended')|list|length %}
+<div class="stat-row" style="margin-bottom:18px;">
+  <div class="stat-card sc-g">
+    <div class="stat-ico">🟢</div>
+    <div><div class="stat-n">{{ na }}</div><div class="stat-lbl">Active</div></div>
+  </div>
+  <div class="stat-card sc-b">
+    <div class="stat-ico">⏳</div>
+    <div><div class="stat-n">{{ ns }}</div><div class="stat-lbl">Scheduled</div></div>
+  </div>
+  <div class="stat-card sc-a">
+    <div class="stat-ico">✅</div>
+    <div><div class="stat-n">{{ ne }}</div><div class="stat-lbl">Ended</div></div>
+  </div>
+  <div class="stat-card sc-r">
+    <div class="stat-ico">📣</div>
+    <div><div class="stat-n">{{ campaigns|length }}</div><div class="stat-lbl">Total</div></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="ag-toolbar">
+  <div>
+    <div style="font-weight:700;font-size:.95rem;color:var(--ink);">All Campaigns</div>
+    <div style="font-size:.77rem;color:var(--ink4);margin-top:2px;">Discount campaigns with duration tracking &amp; auto-post to Facebook</div>
+  </div>
+  <a href="{{ url_for('add_campaign') }}" class="btn-p">
+    <i class="bi bi-plus-lg"></i> New Campaign
+  </a>
+</div>
+
+{% if campaigns %}
+<div class="ag-card">
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th style="padding-left:18px;">Campaign</th>
+          <th>Discount</th>
+          <th>Target</th>
+          <th>Schedule &amp; Duration</th>
+          <th class="text-center">Auto-Post</th>
+          <th>Status / Time Left</th>
+          <th style="text-align:right;padding-right:18px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in campaigns %}
+        {% set sc = c.status|lower %}
+        <tr>
+          <td style="padding-left:18px;">
+            <div style="font-weight:700;font-size:.875rem;color:var(--ink);">{{ c.name }}</div>
+            {% if c.type %}
+            <span style="font-size:.67rem;font-weight:600;background:var(--surf3);color:var(--ink3);padding:2px 7px;border-radius:4px;margin-top:3px;display:inline-block;">
+              {{ c.type }}
+            </span>
+            {% endif %}
+          </td>
+
+          <td>
+            <span style="font-family:var(--serif);font-size:1.4rem;font-weight:800;color:var(--red);line-height:1;">{{ c.discount_percentage|int }}</span>
+            <span style="font-size:.7rem;font-weight:700;color:var(--red);">% OFF</span>
+          </td>
+
+          <td>
+            {% if c.category_target %}
+            <span class="badge-pill bp-grn" style="margin-bottom:2px;">
+              <i class="bi bi-tag" style="font-size:.62rem;"></i>{{ c.category_target }}
+            </span>
+            {% endif %}
+            {% if c.crop_target %}
+            <span class="badge-pill bp-amb">
+              <i class="bi bi-seedling" style="font-size:.62rem;"></i>{{ c.crop_target }}
+            </span>
+            {% endif %}
+            {% if not c.category_target and not c.crop_target %}
+            <span style="font-size:.8rem;color:var(--ink4);">All products</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <!-- Start → End dates -->
+            <div style="font-size:.78rem;font-weight:700;color:var(--ink2);">
+              {{ c.start_date.strftime('%b %d') if c.start_date else '—' }}
+              <span style="color:var(--ink4);font-weight:400;"> → </span>
+              {{ c.end_date.strftime('%b %d, %Y') if c.end_date else '—' }}
+            </div>
+            <!-- Duration pill -->
+            {% if c.start_date and c.end_date %}
+            {% set dur_ms = (c.end_date - c.start_date).total_seconds() %}
+            {% set dur_days = (dur_ms / 86400)|int %}
+            {% set dur_hrs  = ((dur_ms % 86400) / 3600)|int %}
+            <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+              <span class="dur-pill {{ sc }}">
+                <i class="bi bi-clock" style="font-size:.62rem;"></i>
+                {% if dur_days > 0 %}{{ dur_days }}d {% endif %}{% if dur_hrs > 0 %}{{ dur_hrs }}h{% endif %}
+              </span>
+            </div>
+            <!-- Progress bar for active campaigns -->
+            {% if c.status == 'Active' %}
+            {% set total_s  = (c.end_date - c.start_date).total_seconds() %}
+            {% set elapsed_s = [(c.end_date - c.start_date).total_seconds(), 0]|max %}
+            <div class="progress-dur" style="margin-top:5px;">
+              <div class="progress-dur-fill"
+                   data-start="{{ c.start_date.isoformat() }}"
+                   data-end="{{ c.end_date.isoformat() }}"
+                   style="width:0%"></div>
+            </div>
+            {% endif %}
+            {% endif %}
+          </td>
+
+          <td class="text-center">
+            {% if c.auto_post %}
+            <i class="bi bi-facebook" style="color:#1877f2;font-size:.95rem;"></i>
+            <i class="bi bi-check-circle-fill" style="color:var(--grn);font-size:.68rem;margin-left:2px;"></i>
+            {% else %}
+            <i class="bi bi-x-circle" style="color:var(--bdr2);font-size:.95rem;"></i>
+            {% endif %}
+          </td>
+
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;" class="cs-{{ sc }}">
+              <span class="cs-dot"></span>{{ c.status }}
+            </span>
+            <!-- Live countdown for active/scheduled -->
+            {% if c.status in ['Active', 'Scheduled'] %}
+            <div class="cd-live {{ sc }}" style="margin-top:4px;"
+                 data-ts="{{ c.end_date.isoformat() if c.status == 'Active' else c.start_date.isoformat() }}"
+                 data-type="{{ 'ends' if c.status == 'Active' else 'starts' }}">
+              <i class="bi bi-hourglass-split" style="font-size:.65rem;"></i>
+              <span class="cd-txt">…</span>
+            </div>
+            {% elif c.status == 'Ended' %}
+            <div style="font-size:.7rem;color:var(--ink4);margin-top:3px;">
+              Ended {{ c.end_date.strftime('%b %d') if c.end_date else '' }}
+            </div>
+            {% endif %}
+          </td>
+
+          <td style="text-align:right;padding-right:18px;">
+            <div class="camp-row-actions">
+              {% if c.status != 'Ended' %}
+              <form method="POST" action="{{ url_for('activate_campaign', campaign_id=c.id) }}"
+                    onsubmit="return confirm('Activate &quot;{{ c.name|e }}&quot;?\n\nThis will apply {{ c.discount_percentage|int }}% discount and post matching products to Facebook.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-p sm">
+                  <i class="bi bi-facebook"></i>
+                  {% if c.status == 'Active' %}Re-Post{% else %}Activate{% endif %}
+                </button>
+              </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('delete_campaign', campaign_id=c.id) }}"
+                    onsubmit="return confirm('Delete campaign &quot;{{ c.name|e }}&quot;? This cannot be undone.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-d sm" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="ag-card">
+  <div style="text-align:center;padding:56px 24px;">
+    <div style="font-size:3rem;margin-bottom:12px;opacity:.5;">📣</div>
+    <h5 style="font-weight:700;color:var(--ink);margin-bottom:8px;">No campaigns yet</h5>
+    <p style="color:var(--ink4);max-width:340px;margin:0 auto 22px;font-size:.875rem;">
+      Create a campaign to automatically apply discounts and post products to Facebook.
+    </p>
+    <a href="{{ url_for('add_campaign') }}" class="btn-p">
+      <i class="bi bi-plus-lg"></i> Create First Campaign
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Info strip -->
+<div style="background:var(--grn-l);border:1px solid var(--grn-m);border-left:4px solid var(--grn);border-radius:var(--r-sm);padding:14px 18px;margin-top:6px;">
+  <div style="font-weight:700;color:var(--grn);font-size:.8rem;margin-bottom:8px;">
+    <i class="bi bi-info-circle me-2"></i>How Campaigns Work
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:.79rem;color:var(--ink2);">
+    <div><strong>🟢 Activate &amp; Post</strong><br>Applies discount and posts matching products to Facebook immediately.</div>
+    <div><strong>⏰ Auto-Scheduled</strong><br>Future campaigns activate automatically — checked every 5 minutes by the scheduler.</div>
+    <div><strong>⏱️ Duration Tracking</strong><br>See exactly how long each discount lasts with live countdown timers.</div>
+    <div><strong>📘 Requirements</strong><br>Campaign Auto-Post must be ON, and each product's Auto-Post must also be checked.</div>
+  </div>
+</div>
+
+<script>
+// Live countdown for Active/Scheduled campaigns
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'Expired';
+  var d = Math.floor(ms/86400000), h = Math.floor((ms%86400000)/3600000),
+      m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
+  if (d > 0) return d+'d '+h+'h left';
+  if (h > 0) return h+'h '+m+'m left';
+  if (m > 0) return m+'m '+s+'s left';
+  return s+'s left';
+}
+
+function tickCountdowns() {
+  var now = Date.now();
+  document.querySelectorAll('.cd-live').forEach(function(el) {
+    var ts   = new Date(el.dataset.ts).getTime();
+    var type = el.dataset.type;
+    var ms   = ts - now;
+    var txt  = el.querySelector('.cd-txt');
+    if (!txt) return;
+    if (ms <= 0) {
+      txt.textContent = type==='ends' ? 'Ended' : 'Starting now…';
+    } else {
+      txt.textContent = (type==='ends' ? 'Ends in ' : 'Starts in ') + fmtCountdown(ms);
+    }
+  });
+}
+
+// Progress bars for active campaigns
+function updateProgressBars() {
+  var now = Date.now();
+  document.querySelectorAll('.progress-dur-fill[data-start]').forEach(function(bar) {
+    var start = new Date(bar.dataset.start).getTime();
+    var end   = new Date(bar.dataset.end).getTime();
+    var total = end - start;
+    if (total <= 0) { bar.style.width='100%'; bar.classList.add('ended'); return; }
+    var pct   = Math.min(100, Math.max(0, (now - start) / total * 100));
+    bar.style.width = pct.toFixed(1)+'%';
+    if (pct >= 100) bar.classList.add('ended');
+  });
+}
+
+tickCountdowns();
+updateProgressBars();
+setInterval(function() { tickCountdowns(); updateProgressBars(); }, 1000);
+</script>
+
+{% endblock %}

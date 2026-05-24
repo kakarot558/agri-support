@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Create Account — AgriFortress{% endblock %}
+{% block extra_head %}
+<style>
+:root { --nav-h: 62px; }
+.auth-wrap { min-height: calc(100vh - var(--nav-h)); display: flex; align-items: stretch; background: #f4f6f3; }
+.auth-left {
+  flex: 1; background: linear-gradient(145deg, #052e16 0%, #14532d 40%, #16a34a 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 48px; position: relative; overflow: hidden;
+}
+.auth-left::before { content:''; position:absolute; width:480px; height:480px; background:rgba(255,255,255,.04); border-radius:50%; top:-120px; right:-120px; }
+.auth-left::after  { content:''; position:absolute; width:320px; height:320px; background:rgba(134,239,172,.07); border-radius:50%; bottom:-80px; left:-80px; }
+.al-content { position: relative; z-index: 1; width: 100%; max-width: 320px; }
+.al-logo { font-family: 'Fraunces', serif; font-size: 2.5rem; font-weight: 900; color: #fff; letter-spacing: -.03em; margin-bottom: 6px; }
+.al-logo span { color: #86efac; font-style: italic; }
+.al-tagline { color: rgba(255,255,255,.7); font-size: .95rem; line-height: 1.6; margin-bottom: 36px; }
+.al-feature { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; color: rgba(255,255,255,.85); font-size: .9rem; }
+.al-feat-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.al-feat-text strong { display: block; font-weight: 700; color: #fff; font-size: .88rem; }
+.al-feat-text span { font-size: .78rem; opacity: .65; }
+/* Right */
+.auth-right { width: 520px; display: flex; align-items: flex-start; justify-content: center; padding: 44px 44px; background: #fff; overflow-y: auto; }
+@media (max-width: 900px) { .auth-left { display: none; } .auth-right { width: 100%; padding: 32px 20px; background: #f4f6f3; } }
+.auth-box { width: 100%; max-width: 440px; }
+.auth-eyebrow { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #16a34a; margin-bottom: 8px; }
+.auth-title { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 900; color: #111; margin-bottom: 4px; letter-spacing: -.03em; }
+.auth-sub { font-size: .875rem; color: #6b7280; margin-bottom: 24px; }
+/* Section headers */
+.sec-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 14px; }
+.sec-divider-line { flex: 1; height: 1px; background: #f3f4f6; }
+.sec-divider-label { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #16a34a; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+/* Grid */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .g2 { grid-template-columns: 1fr; } }
+/* Fields */
+.field { margin-bottom: 13px; }
+.field-label { display: block; font-size: .78rem; font-weight: 700; color: #374151; margin-bottom: 5px; }
+.field-label .opt { font-weight: 400; font-size: .72rem; color: #9ca3af; }
+.field-wrap { position: relative; }
+.field-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: .88rem; pointer-events: none; }
+.field-input {
+  width: 100%; padding: 10px 14px 10px 38px;
+  border: 1.5px solid #e5e7eb; border-radius: 8px;
+  font-size: .875rem; color: #111; background: #f9fafb;
+  font-family: 'Plus Jakarta Sans', sans-serif; transition: all .18s; box-sizing: border-box;
+}
+.field-input:focus { outline: none; border-color: #16a34a; background: #fff; box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+.field-input::placeholder { color: #d1d5db; }
+/* Tip */
+.tip { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 9px 13px; font-size: .78rem; color: #15803d; margin-bottom: 13px; display: flex; align-items: flex-start; gap: 7px; line-height: 1.5; }
+/* Flash */
+.flash { padding: 11px 14px; border-radius: 8px; font-size: .84rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.flash-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+.flash-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.flash-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; }
+/* Button */
+.btn-auth {
+  width: 100%; padding: 13px; border: none; border-radius: 10px;
+  background: #16a34a; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: .95rem; font-weight: 800;
+  cursor: pointer; transition: all .2s; box-shadow: 0 4px 14px rgba(22,163,74,.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;
+}
+.btn-auth:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(22,163,74,.4); }
+.auth-foot { text-align: center; font-size: .875rem; color: #6b7280; margin-top: 16px; }
+.auth-foot a { color: #16a34a; font-weight: 700; text-decoration: none; }
+.auth-foot a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+
+  <div class="auth-left">
+    <div class="al-content">
+      <div class="al-logo">Agri<span>Fortress</span></div>
+      <div class="al-tagline">Join thousands of farmers who trust AgriFortress for quality agricultural supplies.</div>
+      <div class="al-feature"><div class="al-feat-icon">📍</div><div class="al-feat-text"><strong>Save Your Address</strong><span>Auto-fills on every order</span></div></div>
+      <div class="al-feature"><div class="al-feat-icon">📦</div><div class="al-feat-text"><strong>Track All Orders</strong><span>Live delivery updates</span></div></div>
+      <div class="al-feature"><div class="al-feat-icon">⚡</div><div class="al-feat-text"><strong>Faster Checkout</strong><span>3 taps — confirm — done</span></div></div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-box">
+      <div class="auth-eyebrow">It's free</div>
+      <div class="auth-title">Create account</div>
+      <div class="auth-sub">Takes under a minute</div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}"><i class="bi bi-exclamation-circle-fill"></i>{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="sec-divider"><div class="sec-divider-line"></div><div class="sec-divider-label"><i class="bi bi-person-fill"></i> Account Details</div><div class="sec-divider-line"></div></div>
+
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">Username *</label>
+            <div class="field-wrap"><i class="bi bi-at field-icon"></i><input name="username" class="field-input" placeholder="juandelacruz" required maxlength="80" autocomplete="username" autofocus></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Full Name <span class="opt">(optional)</span></label>
+            <div class="field-wrap"><i class="bi bi-person field-icon"></i><input name="full_name" class="field-input" placeholder="Juan Dela Cruz" maxlength="200"></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">Email <span class="opt">(optional)</span></label>
+            <div class="field-wrap"><i class="bi bi-envelope field-icon"></i><input name="email" type="email" class="field-input" placeholder="juan@email.com" maxlength="200"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Phone <span class="opt">(optional)</span></label>
+            <div class="field-wrap"><i class="bi bi-phone field-icon"></i><input name="phone" class="field-input" placeholder="09XX XXX XXXX" maxlength="50"></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">Password *</label>
+            <div class="field-wrap"><i class="bi bi-lock field-icon"></i><input name="password" type="password" class="field-input" placeholder="Min. 6 characters" required autocomplete="new-password"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Confirm *</label>
+            <div class="field-wrap"><i class="bi bi-lock-fill field-icon"></i><input name="password2" type="password" class="field-input" placeholder="Repeat password" required autocomplete="new-password"></div>
+          </div>
+        </div>
+
+        <div class="sec-divider"><div class="sec-divider-line"></div><div class="sec-divider-label"><i class="bi bi-geo-alt-fill"></i> Delivery Address <span style="text-transform:none;letter-spacing:0;font-weight:500;">(optional)</span></div><div class="sec-divider-line"></div></div>
+
+        <div class="tip"><i class="bi bi-lightbulb-fill" style="flex-shrink:0;margin-top:1px;"></i> Save your address once — auto-fills on every future order for faster checkout.</div>
+
+        <div class="field">
+          <label class="field-label">Street / Barangay</label>
+          <div class="field-wrap"><i class="bi bi-house field-icon"></i><input name="address_line" class="field-input" placeholder="e.g. 123 Rizal St., Brgy. San Isidro" maxlength="300"></div>
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">City / Municipality</label>
+            <div class="field-wrap"><i class="bi bi-building field-icon"></i><input name="address_city" class="field-input" placeholder="Lipa City" maxlength="100"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Province</label>
+            <div class="field-wrap"><i class="bi bi-map field-icon"></i><input name="address_province" class="field-input" placeholder="Batangas" maxlength="100"></div>
+          </div>
+        </div>
+
+        <button class="btn-auth" type="submit">🌱 Create My Account <i class="bi bi-arrow-right"></i></button>
+      </form>
+
+      <div class="auth-foot">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

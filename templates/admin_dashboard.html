@@ -1,0 +1,556 @@
+{% extends "admin_base.html" %}
+{% block title %}Dashboard — AgriFortress{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── 3-Color Upgrade ── Forest Green · Harvest Gold · Rich Charcoal ── */
+:root {
+  --g900: #071f0e;
+  --g800: #0d3d20;
+  --g700: #155e32;
+  --g600: #1a7040;
+  --g500: #1f7a42;
+  --g400: #2d9e58;
+  --g300: #52be7a;
+  --g200: #9adcb1;
+  --g100: #d4f0e0;
+  --g50:  #edf8f2;
+
+  --a800: #78490a;
+  --a700: #92600a;
+  --a600: #b8790d;
+  --a500: #d4931a;
+  --a400: #e8aa38;
+  --a300: #f0c164;
+  --a200: #f7d899;
+  --a100: #fcefd5;
+  --a50:  #fef8ed;
+
+  --c950: #090e0a;
+  --c900: #141f16;
+  --c800: #1e2e20;
+  --c700: #2c3e2f;
+  --c600: #3d5241;
+  --c500: #536958;
+  --c400: #7a9480;
+  --c200: #d0dcd2;
+  --c100: #eaefeb;
+  --c50:  #f5f7f5;
+}
+
+/* ── Stat grid: 3 cols for 6 cards → 2 clean rows ── */
+.stat-row {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 900px) {
+  .stat-row { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .stat-row { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ── Stat card upgrade ── */
+.stat-card {
+  padding: 20px 22px;
+  transition: transform .18s, box-shadow .18s;
+}
+.stat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 32px rgba(14,33,18,.13); }
+
+/* Gold accent variant */
+.sc-a::before { background: linear-gradient(90deg, var(--a500), var(--a300)); }
+.sc-a .stat-n { color: var(--a600); }
+.sc-a .stat-ico { background: var(--a100); }
+
+/* Green variant deeper */
+.sc-g::before { background: linear-gradient(90deg, var(--g700), var(--g400)); }
+.sc-g .stat-n { color: var(--g700); }
+.sc-g .stat-ico { background: var(--g100); }
+
+/* ── Card head gold accent ── */
+.ag-card-head {
+  position: relative;
+  border-bottom: 1px solid var(--bdr) !important;
+}
+.ag-card-head::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  width: 48px; height: 2px;
+  background: linear-gradient(90deg, var(--a500), var(--a300));
+  border-radius: 0 2px 0 0;
+}
+
+/* ── Section heading divider ── */
+.dash-section-label {
+  font-size: .65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--c500);
+  display: flex; align-items: center; gap: 10px;
+  margin: 6px 0 14px;
+}
+.dash-section-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--bdr), transparent);
+}
+
+/* ── Order status pills (consistent system) ── */
+.os-pill {
+  display: inline-block; padding: 3px 11px;
+  border-radius: 100px; font-size: .7rem; font-weight: 800;
+  white-space: nowrap;
+}
+.os-Pending    { background: var(--a100); color: var(--a700); border: 1px solid var(--a200); }
+.os-Confirmed  { background: #dbeafe;     color: #1d4ed8;     border: 1px solid #bfdbfe; }
+.os-Processing { background: #ede9fe;     color: #6d28d9;     border: 1px solid #ddd6fe; }
+.os-Shipped    { background: #cffafe;     color: #0e7490;     border: 1px solid #a5f3fc; }
+.os-Delivered  { background: var(--g100); color: var(--g700); border: 1px solid var(--g200); }
+.os-Cancelled  { background: #fee2e2;     color: #b91c1c;     border: 1px solid #fecaca; }
+
+/* ── Log event code ── */
+.ev-code {
+  background: var(--c50); color: var(--g700);
+  padding: 2px 8px; border-radius: 5px; font-size: .73rem;
+  border: 1px solid var(--c200); font-family: 'Courier New', monospace; font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center; padding: 36px 20px;
+  color: var(--ink4);
+}
+.empty-state i { font-size: 2rem; display: block; margin-bottom: 8px; opacity: .35; }
+.empty-state p { font-size: .84rem; margin: 0; }
+
+/* ── Card body no-padding wrapper ── */
+.card-scroll { overflow-x: auto; }
+
+/* ── Recent orders table order # ── */
+.order-num-cell {
+  font-family: 'Courier New', monospace;
+  font-size: .82rem; font-weight: 700;
+  color: var(--g800); letter-spacing: .03em;
+}
+
+/* ── Trend chip on stat cards ── */
+.stat-trend {
+  position: absolute; top: 14px; right: 14px;
+  font-size: .65rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 100px;
+}
+.st-up   { background: var(--g100); color: var(--g700); }
+.st-warn { background: var(--a100); color: var(--a700); }
+.st-bad  { background: #fee2e2; color: #b91c1c; }
+
+/* ── Gold row divider in tables ── */
+.ag-tbl tbody tr:hover { background: var(--g50); }
+
+/* ── Chart card body padding ── */
+.chart-body { padding: 20px; }
+
+/* ── Row 2 & 3 spacing ── */
+.dash-row { display: grid; gap: 16px; margin-bottom: 16px; }
+.dash-row-2 { grid-template-columns: 5fr 7fr; }
+.dash-row-3 { grid-template-columns: 7fr 5fr; }
+@media (max-width: 900px) {
+  .dash-row-2, .dash-row-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Low stock severity bar ── */
+.stock-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.stock-bar {
+  flex: 1; height: 5px; border-radius: 3px;
+  background: var(--c100); overflow: hidden; min-width: 40px;
+}
+.stock-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+.sb-ok   { background: var(--g400); }
+.sb-warn { background: var(--a500); }
+.sb-crit { background: #ef4444; }
+.stock-val { font-weight: 700; font-size: .82rem; min-width: 28px; text-align: right; }
+.sv-ok   { color: var(--g700); }
+.sv-warn { color: var(--a700); }
+.sv-crit { color: #dc2626; }
+
+/* ── Revenue mini stat ── */
+.mini-kpi {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--c100);
+  font-size: .84rem;
+}
+.mini-kpi:last-child { border-bottom: none; }
+.mks { color: var(--c500); font-weight: 500; }
+.mkv { font-weight: 800; color: var(--c900); }
+
+/* Animation */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stat-card  { animation: fade-up .35s ease both; }
+.stat-card:nth-child(1) { animation-delay: .03s; }
+.stat-card:nth-child(2) { animation-delay: .06s; }
+.stat-card:nth-child(3) { animation-delay: .09s; }
+.stat-card:nth-child(4) { animation-delay: .12s; }
+.stat-card:nth-child(5) { animation-delay: .15s; }
+.stat-card:nth-child(6) { animation-delay: .18s; }
+.ag-card { animation: fade-up .38s ease both; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ═══ STAT CARDS (6 cards, 3-col grid = 2 clean rows) ═══ -->
+<div class="stat-row">
+
+  <div class="stat-card sc-g">
+    <div class="stat-ico">📦</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ total_products }}</div>
+      <div class="stat-lbl">Total Products</div>
+      <div class="stat-sub">{{ active_products }} active</div>
+    </div>
+  </div>
+
+  <div class="stat-card sc-a">
+    <div class="stat-ico">🏷️</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ discounted }}</div>
+      <div class="stat-lbl">On Discount</div>
+      <div class="stat-sub">{{ active_campaigns }} active campaign{{ 's' if active_campaigns != 1 }}</div>
+    </div>
+  </div>
+
+  <div class="stat-card sc-r">
+    <div class="stat-ico">⚠️</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ low_stock }}</div>
+      <div class="stat-lbl">Low Stock</div>
+      <div class="stat-sub">Needs reorder</div>
+    </div>
+    {% if low_stock > 0 %}
+    <span class="stat-trend st-bad">!</span>
+    {% endif %}
+  </div>
+
+  <div class="stat-card sc-b">
+    <div class="stat-ico">📣</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ fb_success }}</div>
+      <div class="stat-lbl">FB Posts</div>
+      <div class="stat-sub">{% if fb_failed > 0 %}<span style="color:var(--red);">{{ fb_failed }} failed</span>{% else %}All successful{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="stat-card sc-g">
+    <div class="stat-ico">🛒</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ total_orders }}</div>
+      <div class="stat-lbl">Total Orders</div>
+      <div class="stat-sub">{{ pending_orders }} pending</div>
+    </div>
+    {% if pending_orders > 0 %}
+    <span class="stat-trend st-warn">{{ pending_orders }}</span>
+    {% endif %}
+  </div>
+
+  <div class="stat-card sc-a">
+    <div class="stat-ico">🚚</div>
+    <div style="flex:1;min-width:0;">
+      <div class="stat-n">{{ shipped_orders }}</div>
+      <div class="stat-lbl">Shipped</div>
+      <div class="stat-sub"><a href="{{ url_for('admin_orders') }}" style="color:var(--a600);font-weight:700;text-decoration:none;">View all orders ↗</a></div>
+    </div>
+  </div>
+
+</div><!-- /stat-row -->
+
+<!-- ═══ ROW 2: Chart + Low Stock ═══ -->
+<div class="dash-section-label"><i class="bi bi-grid-1x2"></i> Overview</div>
+<div class="dash-row dash-row-2">
+
+  <!-- Products by Category Chart -->
+  <div class="ag-card" style="margin-bottom:0">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title"><i class="bi bi-pie-chart-fill"></i> Products by Category</h6>
+    </div>
+    <div class="chart-body">
+      {% if cat_data %}
+      <div style="position:relative;height:240px;">
+        <canvas id="catChart"></canvas>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No products yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Low Stock Table -->
+  <div class="ag-card" style="margin-bottom:0">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-exclamation-triangle-fill" style="color:var(--a500);"></i>
+        Low Stock Alert
+      </h6>
+      <a href="{{ url_for('admin_products') }}" class="btn-o sm">View All</a>
+    </div>
+    <div class="card-scroll">
+      <table class="ag-tbl">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Stock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in low_stock_products %}
+          <tr>
+            <td>
+              <div style="font-weight:700;font-size:.84rem;color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                {{ p.name[:30] }}{% if p.name|length > 30 %}…{% endif %}
+              </div>
+            </td>
+            <td>
+              <span class="cat-pill cp-{{ p.category|lower|replace(' ','-') }}">{{ p.category }}</span>
+            </td>
+            <td>
+              {% set pct = [(p.stock_quantity / p.stock_threshold * 100) | int, 100] | min if p.stock_threshold > 0 else 0 %}
+              <div class="stock-bar-wrap">
+                <div class="stock-bar">
+                  <div class="stock-bar-fill {% if p.stock_quantity == 0 %}sb-crit{% elif pct < 50 %}sb-warn{% else %}sb-ok{% endif %}"
+                       style="width:{{ pct }}%"></div>
+                </div>
+                <span class="stock-val {% if p.stock_quantity == 0 %}sv-crit{% elif pct < 50 %}sv-warn{% else %}sv-ok{% endif %}">
+                  {{ p.stock_quantity }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <a href="{{ url_for('edit_product', product_id=p.id) }}" class="btn-o sm">Edit</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">
+              <div class="empty-state" style="padding:24px;">
+                <i class="bi bi-check-circle-fill" style="color:var(--grn);opacity:.5;"></i>
+                <p>All stock levels healthy</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /row 2 -->
+
+<!-- ═══ ROW 3: Automation Logs + FB Posts ═══ -->
+<div class="dash-section-label" style="margin-top:8px;"><i class="bi bi-activity"></i> Automation</div>
+<div class="dash-row dash-row-3">
+
+  <!-- Automation Logs -->
+  <div class="ag-card" style="margin-bottom:0">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title"><i class="bi bi-activity"></i> Automation Logs</h6>
+      <a href="{{ url_for('admin_logs') }}" class="btn-o sm">View All</a>
+    </div>
+    <div class="card-scroll">
+      <table class="ag-tbl">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td><span class="ev-code">{{ log.event_type }}</span></td>
+            <td><span class="ls ls-{{ log.status }}">{{ log.status }}</span></td>
+            <td style="font-size:.78rem;color:var(--ink3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ log.message[:55] if log.message else '—' }}
+            </td>
+            <td style="font-size:.74rem;color:var(--ink4);white-space:nowrap;font-variant-numeric:tabular-nums;">
+              {{ log.timestamp.strftime('%m/%d %H:%M') }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">
+              <div class="empty-state" style="padding:24px;">
+                <i class="bi bi-journal-x"></i>
+                <p>No logs yet.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FB Posts -->
+  <div class="ag-card" style="margin-bottom:0">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-facebook" style="color:#1877f2;"></i> FB Posts
+      </h6>
+    </div>
+    <div class="card-scroll">
+      <table class="ag-tbl">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fb in recent_fb %}
+          <tr>
+            <td style="font-size:.8rem;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ fb.product.name[:28] if fb.product else 'N/A' }}
+            </td>
+            <td><span class="ls ls-{{ fb.status }}">{{ fb.status }}</span></td>
+            <td style="font-size:.74rem;color:var(--ink4);white-space:nowrap;font-variant-numeric:tabular-nums;">
+              {{ fb.created_at.strftime('%m/%d %H:%M') }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3">
+              <div class="empty-state" style="padding:24px;">
+                <i class="bi bi-facebook"></i>
+                <p>No posts yet.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /row 3 -->
+
+<!-- ═══ RECENT ORDERS (FIXED: moved out of extra_js block) ═══ -->
+<div class="dash-section-label" style="margin-top:8px;"><i class="bi bi-bag-check"></i> Recent Orders</div>
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title"><i class="bi bi-bag-check-fill"></i> Recent Orders</h6>
+    <a href="{{ url_for('admin_orders') }}" class="btn-o sm">View All</a>
+  </div>
+  <div class="card-scroll">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Shipping</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td><span class="order-num-cell">{{ order.order_number }}</span></td>
+          <td>
+            <div style="font-weight:700;font-size:.84rem;color:var(--ink);">{{ order.customer_name }}</div>
+            <div style="font-size:.72rem;color:var(--ink4);">{{ order.customer_phone }}</div>
+          </td>
+          <td style="font-weight:800;color:var(--g700);">₱{{ "%.2f"|format(order.total_amount) }}</td>
+          <td style="font-size:.8rem;color:var(--ink3);">{{ order.shipping_method }}</td>
+          <td>
+            <span class="os-pill os-{{ order.status }}">{{ order.status }}</span>
+          </td>
+          <td style="font-size:.74rem;color:var(--ink4);font-variant-numeric:tabular-nums;white-space:nowrap;">
+            {{ order.created_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <a href="{{ url_for('admin_order_detail', order_id=order.id) }}" class="btn-o sm">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:32px;">
+              <i class="bi bi-bag-x"></i>
+              <p>No orders yet.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var ctx = document.getElementById('catChart');
+  if (!ctx) return;
+  var labels = {{ cat_data | map(attribute=0) | list | tojson }};
+  var values = {{ cat_data | map(attribute=1) | list | tojson }};
+  if (!labels.length) return;
+
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: ['#1a7040','#d4931a','#0369a1','#7c3aed','#0e7490','#b91c1c','#52be7a'],
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 16,
+            usePointStyle: true,
+            pointStyleWidth: 10,
+            font: { size: 11, family: "'Plus Jakarta Sans', sans-serif", weight: '600' },
+            color: '#4b5563'
+          }
+        },
+        tooltip: {
+          backgroundColor: '#141f16',
+          titleColor: '#d4f0e0',
+          bodyColor: '#9adcb1',
+          borderColor: 'rgba(212,147,26,.3)',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label: function (c) {
+              var t = c.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+              return '  ' + c.label + ': ' + c.parsed + ' (' + Math.round(c.parsed / t * 100) + '%)';
+            }
+          }
+        }
+      },
+      cutout: '64%'
+    }
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,734 @@
+{% extends "admin_base.html" %}
+{% block title %}Scheduled Posts — AgriFortress{% endblock %}
+{% block page_title %}Scheduled Posts{% endblock %}
+
+{% block extra_css %}
+<style>
+.cd-badge {
+  display:inline-flex;align-items:center;gap:5px;
+  background:#eff6ff;color:#2563eb;
+  padding:4px 10px;border-radius:100px;
+  font-size:.73rem;font-weight:700;border:1px solid #bfdbfe;
+  white-space:nowrap;
+}
+.ss { display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:100px; }
+.ss-sched { background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe; }
+.ss-post  { background:var(--grn-l);color:var(--grn);border:1px solid var(--grn-m); }
+.ss-idle  { background:var(--surf3);color:var(--ink3); }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Caption mode */
+.cap-preview-box {
+  background:var(--surf2); border:1.5px solid var(--bdr2);
+  border-radius:10px; padding:14px 16px;
+  font-size:.8rem; color:var(--ink2); line-height:1.65;
+  white-space:pre-wrap; min-height:90px; font-family:inherit;
+  max-height:160px; overflow-y:auto;
+}
+.cap-textarea {
+  width:100%; border:2px solid var(--bdr2); border-radius:10px;
+  padding:12px 14px; font-size:.8rem; color:var(--ink);
+  background:var(--surf); resize:vertical; min-height:120px;
+  font-family:inherit; line-height:1.65; transition:.15s;
+}
+.cap-textarea:focus { outline:none; border-color:var(--grn); box-shadow:0 0 0 3px rgba(22,163,74,.1); }
+.cap-mode-toggle { display:flex; gap:4px; margin-bottom:10px; }
+.cmt-btn {
+  flex:1; padding:7px 10px; border:1.5px solid var(--bdr2); border-radius:8px;
+  font-size:.75rem; font-weight:700; cursor:pointer; background:var(--surf2);
+  color:var(--ink3); transition:.15s; text-align:center;
+}
+.cmt-btn.active { border-color:var(--grn); background:var(--grn-l); color:var(--grn); }
+.discount-tag {
+  display:inline-flex;align-items:center;gap:4px;
+  background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;
+  font-size:.68rem;font-weight:800;padding:2px 8px;border-radius:100px;
+}
+/* Schedule mode tabs (Product / Campaign) */
+.sched-mode-tabs { display:flex; gap:0; margin-bottom:0; border-bottom:2px solid var(--bdr2); }
+.smt-btn {
+  padding:11px 22px; font-size:.85rem; font-weight:700; cursor:pointer;
+  border:none; background:transparent; color:var(--ink3);
+  border-bottom:3px solid transparent; margin-bottom:-2px;
+  transition:.15s; display:flex; align-items:center; gap:7px;
+}
+.smt-btn.active { color:var(--grn); border-bottom-color:var(--grn); }
+.smt-btn:hover:not(.active) { color:var(--ink); background:var(--surf2); }
+.sched-panel { display:none; padding-top:18px; }
+.sched-panel.active { display:block; }
+
+/* Campaign card in selector */
+.camp-opt {
+  border:2px solid var(--bdr2); border-radius:10px; padding:12px 14px;
+  cursor:pointer; transition:.15s; margin-bottom:8px; background:var(--surf);
+}
+.camp-opt:hover { border-color:var(--grn); background:var(--grn-l); }
+.camp-opt.selected { border-color:var(--grn); background:var(--grn-l); }
+.camp-tag { display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;
+  padding:2px 8px;border-radius:100px;background:var(--surf3);color:var(--ink3); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="stat-row">
+  <div class="stat-card sc-b">
+    <div class="stat-ico">📅</div>
+    <div>
+      <div class="stat-n">{{ scheduled|selectattr('post_status','equalto','scheduled')|list|length }}</div>
+      <div class="stat-lbl">Pending</div>
+    </div>
+  </div>
+  <div class="stat-card sc-g">
+    <div class="stat-ico">✅</div>
+    <div>
+      <div class="stat-n">{{ scheduled|selectattr('post_status','equalto','posted')|list|length }}</div>
+      <div class="stat-lbl">Posted</div>
+    </div>
+  </div>
+  <div class="stat-card sc-a">
+    <div class="stat-ico">🔁</div>
+    <div>
+      <div class="stat-n">{{ all_products|selectattr('recurring_enabled')|list|length }}</div>
+      <div class="stat-lbl">Recurring</div>
+    </div>
+  </div>
+  <div class="stat-card sc-r">
+    <div class="stat-ico">📣</div>
+    <div>
+      <div class="stat-n">{{ all_campaigns|length }}</div>
+      <div class="stat-lbl">Campaigns</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCHEDULE FORM ─────────────────────────────────────── -->
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title"><i class="bi bi-calendar-plus"></i> Schedule a Post</h6>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="sched-mode-tabs" style="padding:0 18px;">
+    <button type="button" class="smt-btn active" onclick="setSchedMode('product')" id="tabProduct">
+      <i class="bi bi-box-seam"></i> By Product
+    </button>
+    <button type="button" class="smt-btn" onclick="setSchedMode('campaign')" id="tabCampaign">
+      <i class="bi bi-megaphone-fill"></i> By Campaign
+      {% if all_campaigns %}
+      <span style="background:var(--grn);color:#fff;font-size:.62rem;font-weight:800;padding:1px 6px;border-radius:100px;">{{ all_campaigns|length }}</span>
+      {% endif %}
+    </button>
+  </div>
+
+  <div class="ag-card-body" style="padding-top:0;">
+
+    <!-- ── PRODUCT PANEL ──────────────────────────────────── -->
+    <div class="sched-panel active" id="panelProduct">
+      <form method="POST" action="{{ url_for('set_scheduled_post', product_id=0) }}" id="schedForm" onsubmit="return validateProductSched()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="caption_mode" id="scCapMode" value="auto">
+
+        <div class="row g-3 align-items-start">
+          <div class="col-lg-3 col-md-6">
+            <label class="ag-label">Product <span class="req">*</span></label>
+            <select class="form-select" id="prodSel" required onchange="onProdChange()">
+              <option value="">Choose a product…</option>
+              {% for p in all_products %}
+              <option value="{{ p.id }}"
+                data-tone="{{ p.post_tone or 'friendly' }}"
+                data-rec="{{ '1' if p.recurring_enabled else '0' }}"
+                data-days="{{ p.recurring_days or 7 }}"
+                data-discount="{{ p.discount_percentage|int }}"
+                data-price="{{ p.discounted_price if p.discount_percentage > 0 else p.price }}"
+                data-orig="{{ p.original_price }}"
+                data-category="{{ p.category }}"
+                data-crop="{{ p.crop_type or '' }}"
+                data-pack="{{ p.packaging_type or 'unit' }}"
+                data-stock="{{ p.stock_quantity }}"
+                data-sched="{{ p.scheduled_post_at.strftime('%Y-%m-%dT%H:%M') if p.scheduled_post_at else '' }}">
+                {{ p.name[:44] }}{% if p.name|length > 44 %}…{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="prodInfoBadge" style="margin-top:6px;display:none;">
+              <span class="discount-tag" id="prodDiscTag"></span>
+              <span style="font-size:.72rem;color:var(--ink3);margin-left:5px;" id="prodPriceTag"></span>
+            </div>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <label class="ag-label">Date &amp; Time (PHT) <span class="req">*</span></label>
+            <input type="datetime-local" name="scheduled_post_at" id="schedAt" class="form-control" required
+                   onchange="onDateChange('schedAt','timeUntilPost','timeUntilTxt')">
+            <div class="form-text"><i class="bi bi-globe-asia-australia"></i> UTC+8 Philippine Time</div>
+            <div id="timeUntilPost" style="display:none;margin-top:4px;">
+              <span style="font-size:.72rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;">
+                <i class="bi bi-hourglass-split" style="font-size:.65rem;"></i>
+                <span id="timeUntilTxt">—</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-4">
+            <label class="ag-label">Tone</label>
+            <select name="post_tone" id="postTone" class="form-select" onchange="refreshSchedPreview()">
+              <option value="friendly">🤝 Friendly</option>
+              <option value="urgent">🚨 Urgent</option>
+              <option value="professional">💼 Professional</option>
+              <option value="seasonal">🌱 Seasonal</option>
+              <option value="lowstock">⚠️ Low Stock</option>
+            </select>
+          </div>
+
+          <div class="col-lg-2 col-md-4">
+            <label class="ag-label">Recurring</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" name="recurring_enabled"
+                       id="recToggle" onchange="toggleRec()" role="switch">
+              </div>
+              <span id="recLbl" style="font-size:.8rem;font-weight:600;color:var(--ink4);">Off</span>
+            </div>
+            <div id="recDaysWrap" class="d-none" style="margin-top:6px;">
+              <div class="input-group input-group-sm">
+                <input type="number" name="recurring_days" id="recDays" class="form-control" min="1" max="365" value="7">
+                <span class="input-group-text">days</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn-p" style="width:100%;justify-content:center;">
+              <i class="bi bi-calendar-check"></i> Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Caption Section -->
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr2);">
+          <div style="font-weight:700;font-size:.82rem;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <i class="bi bi-chat-square-text" style="color:var(--grn);"></i> Post Caption
+          </div>
+          <div class="cap-mode-toggle">
+            <button type="button" class="cmt-btn active" onclick="setSchedCapMode('auto')" id="scTabAuto">
+              <i class="bi bi-magic"></i> Auto
+            </button>
+            <button type="button" class="cmt-btn" onclick="setSchedCapMode('manual')" id="scTabManual">
+              <i class="bi bi-pencil-square"></i> Custom
+            </button>
+          </div>
+          <div id="scAutoPanel">
+            <div class="cap-preview-box" id="scPreviewBox">Select a product to preview caption…</div>
+          </div>
+          <div id="scManualPanel" style="display:none;">
+            <textarea class="cap-textarea" id="scManualCap" name="custom_caption" placeholder="Write your custom Facebook caption here…"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
+              <span style="font-size:.7rem;color:var(--ink4);" id="scCharCount">0 chars</span>
+              <button type="button" class="btn-o sm" onclick="fillSchedManual()" style="font-size:.7rem;">
+                <i class="bi bi-magic"></i> Use Auto
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── CAMPAIGN PANEL ─────────────────────────────────── -->
+    <div class="sched-panel" id="panelCampaign">
+      {% if all_campaigns %}
+      <form method="POST" action="" id="campSchedForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="campaign_id" id="selectedCampaignId" value="">
+
+        <div class="row g-3">
+
+          <!-- Campaign picker -->
+          <div class="col-12">
+            <label class="ag-label">Select Campaign <span class="req">*</span></label>
+            <div id="campaignList">
+              {% for c in all_campaigns %}
+              <div class="camp-opt" data-id="{{ c.id }}"
+                   data-name="{{ c.name|e }}"
+                   data-disc="{{ c.discount_percentage|int }}"
+                   data-cat="{{ c.category_target or 'All' }}"
+                   data-crop="{{ c.crop_target or '' }}"
+                   data-status="{{ c.status }}"
+                   onclick="selectCampaign(this)">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                  <div>
+                    <div style="font-weight:700;font-size:.88rem;color:var(--ink);">{{ c.name }}</div>
+                    <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;">
+                      <span class="camp-tag" style="background:#fee2e2;color:#b91c1c;">{{ c.discount_percentage|int }}% OFF</span>
+                      {% if c.category_target %}
+                      <span class="camp-tag"><i class="bi bi-tag" style="font-size:.6rem;"></i> {{ c.category_target }}</span>
+                      {% else %}
+                      <span class="camp-tag">All Categories</span>
+                      {% endif %}
+                      {% if c.crop_target %}
+                      <span class="camp-tag"><i class="bi bi-seedling" style="font-size:.6rem;"></i> {{ c.crop_target }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <span class="cs-{{ c.status|lower }}" style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:4px;">
+                      <span class="cs-dot"></span>{{ c.status }}
+                    </span>
+                    <div style="font-size:.7rem;color:var(--ink4);margin-top:3px;">
+                      {{ c.start_date.strftime('%b %d') if c.start_date else '' }} → {{ c.end_date.strftime('%b %d, %Y') if c.end_date else '' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div id="noCampSel" style="font-size:.78rem;color:var(--red);margin-top:4px;display:none;">
+              ⚠️ Please select a campaign above
+            </div>
+          </div>
+
+          <!-- Campaign product count preview -->
+          <div class="col-12" id="campProductPreview" style="display:none;">
+            <div style="background:var(--grn-l);border:1.5px solid var(--grn-m);border-radius:10px;padding:12px 16px;font-size:.82rem;color:var(--grn);font-weight:600;">
+              <i class="bi bi-boxes" style="margin-right:6px;"></i>
+              <span id="campProductMsg">—</span>
+            </div>
+          </div>
+
+          <!-- Date + Tone -->
+          <div class="col-md-4">
+            <label class="ag-label">Date &amp; Time (PHT) <span class="req">*</span></label>
+            <input type="datetime-local" name="scheduled_post_at" id="campSchedAt" class="form-control" required
+                   onchange="onDateChange('campSchedAt','campTimeUntil','campTimeTxt')">
+            <div class="form-text"><i class="bi bi-globe-asia-australia"></i> UTC+8 Philippine Time</div>
+            <div id="campTimeUntil" style="display:none;margin-top:4px;">
+              <span style="font-size:.72rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;">
+                <i class="bi bi-hourglass-split" style="font-size:.65rem;"></i>
+                <span id="campTimeTxt">—</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="ag-label">Caption Tone</label>
+            <select name="post_tone" id="campTone" class="form-select">
+              <option value="friendly">🤝 Friendly</option>
+              <option value="urgent">🚨 Urgent</option>
+              <option value="professional">💼 Professional</option>
+              <option value="seasonal">🌱 Seasonal</option>
+              <option value="lowstock">⚠️ Low Stock</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="ag-label">Recurring</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" name="recurring_enabled"
+                       id="campRecToggle" onchange="toggleCampRec()" role="switch">
+              </div>
+              <span id="campRecLbl" style="font-size:.8rem;font-weight:600;color:var(--ink4);">Off</span>
+            </div>
+            <div id="campRecDaysWrap" class="d-none" style="margin-top:6px;">
+              <div class="input-group input-group-sm">
+                <input type="number" name="recurring_days" id="campRecDays" class="form-control" min="1" max="365" value="7">
+                <span class="input-group-text">days</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn-p" style="width:100%;justify-content:center;" onclick="return validateCampSched()">
+              <i class="bi bi-calendar-check"></i> Schedule
+            </button>
+          </div>
+
+        </div>
+      </form>
+      {% else %}
+      <div style="text-align:center;padding:36px 24px;color:var(--ink4);">
+        <div style="font-size:2.5rem;margin-bottom:10px;opacity:.4;">📣</div>
+        <div style="font-weight:700;color:var(--ink3);margin-bottom:6px;">No active campaigns</div>
+        <p style="font-size:.82rem;max-width:280px;margin:0 auto 16px;">Create a campaign first, then schedule it to post here.</p>
+        <a href="{{ url_for('add_campaign') }}" class="btn-p sm"><i class="bi bi-plus-lg"></i> New Campaign</a>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- ── POST QUEUE ────────────────────────────────────────── -->
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title"><i class="bi bi-list-task"></i> Post Queue</h6>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="badge-pill bp-grn">{{ scheduled|length }} item{{ 's' if scheduled|length != 1 }}</span>
+      <button class="btn-o sm" id="forceCheckBtn" onclick="forceCheck()" title="Run the scheduler check right now">
+        <i class="bi bi-arrow-clockwise"></i> Check Now
+      </button>
+      <span id="schedulerStatus" style="font-size:.72rem;color:var(--ink4);display:flex;align-items:center;gap:4px;">
+        <span id="statusDot" style="width:8px;height:8px;border-radius:50%;background:var(--ink4);display:inline-block;"></span>
+        <span id="statusTxt">Idle</span>
+      </span>
+    </div>
+  </div>
+  <div id="overdueBar" style="display:none;background:#fee2e2;border-bottom:1px solid #fca5a5;padding:10px 18px;font-size:.8rem;color:#b91c1c;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong style="margin-left:4px;">Overdue posts detected.</strong> Click <strong>Check Now</strong> above to force-fire them immediately.
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th style="padding-left:18px;">Product</th>
+          <th>Discount</th>
+          <th>Scheduled (PHT)</th>
+          <th>Countdown</th>
+          <th>Tone</th>
+          <th>Recurring</th>
+          <th>Last Posted</th>
+          <th>Status</th>
+          <th style="text-align:right;padding-right:18px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in scheduled %}
+        <tr data-product-id="{{ p.id }}">
+          <td style="padding-left:18px;">
+            <div style="font-weight:700;font-size:.875rem;color:var(--ink);">
+              {{ p.name[:32] }}{% if p.name|length > 32 %}…{% endif %}
+            </div>
+            <div style="font-size:.72rem;color:var(--ink4);">{{ p.category }}</div>
+          </td>
+
+          <td>
+            {% if p.discount_percentage > 0 %}
+            <span class="discount-tag">{{ p.discount_percentage|int }}% OFF</span>
+            <div style="font-size:.72rem;color:var(--grn);font-weight:700;margin-top:3px;">
+              ₱{{ "%.0f"|format(p.discounted_price) }}
+            </div>
+            {% else %}
+            <span style="font-size:.8rem;color:var(--ink4);">No discount</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <div style="font-weight:700;font-size:.84rem;color:var(--ink2);">
+              {{ p.scheduled_post_at.strftime('%b %d, %Y') }}
+            </div>
+            <div style="font-size:.76rem;color:var(--grn);font-weight:600;">
+              {{ p.scheduled_post_at.strftime('%I:%M %p') }}
+            </div>
+          </td>
+
+          <td>
+            {% if p.post_status == 'scheduled' and p.scheduled_post_at > now %}
+            <span class="cd-badge" data-ts="{{ p.scheduled_post_at.strftime('%Y-%m-%dT%H:%M:%S') }}">
+              <i class="bi bi-hourglass-split" style="font-size:.72rem;"></i>
+              <span class="cd-text">…</span>
+            </span>
+            {% elif p.post_status == 'posted' %}
+            <span style="font-size:.8rem;font-weight:700;color:var(--grn);">✅ Posted</span>
+            {% else %}
+            <span class="cd-badge" data-ts="{{ p.scheduled_post_at.strftime('%Y-%m-%dT%H:%M:%S') }}"
+                  style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;">
+              <i class="bi bi-exclamation-triangle" style="font-size:.72rem;"></i>
+              <span class="cd-text">Overdue</span>
+            </span>
+            {% endif %}
+          </td>
+
+          <td>
+            <span class="badge-pill bp-mute" style="text-transform:capitalize;">{{ p.post_tone or 'friendly' }}</span>
+          </td>
+
+          <td>
+            {% if p.recurring_enabled %}
+            <span class="badge-pill bp-blu">
+              <i class="bi bi-arrow-repeat" style="font-size:.65rem;"></i> Every {{ p.recurring_days }}d
+            </span>
+            {% else %}
+            <span style="color:var(--ink4);font-size:.8rem;">Once</span>
+            {% endif %}
+          </td>
+
+          <td style="font-size:.8rem;">
+            {% if p.last_posted_at %}
+            <span style="font-weight:600;color:var(--ink2);">{{ p.last_posted_at.strftime('%b %d') }}</span>
+            <span style="color:var(--ink4);margin-left:2px;">{{ p.last_posted_at.strftime('%I:%M %p') }}</span>
+            {% else %}
+            <span style="color:var(--ink4);">Never</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if p.post_status == 'scheduled' %}
+            <span class="ss ss-sched"><i class="bi bi-hourglass-split" style="font-size:.65rem;"></i> Scheduled</span>
+            {% elif p.post_status == 'posted' %}
+            <span class="ss ss-post"><i class="bi bi-check-circle" style="font-size:.65rem;"></i> Posted</span>
+            {% else %}
+            <span class="ss ss-idle">{{ p.post_status }}</span>
+            {% endif %}
+          </td>
+
+          <td style="text-align:right;padding-right:18px;">
+            <div style="display:flex;gap:5px;justify-content:flex-end;align-items:center;">
+              <form method="POST" action="{{ url_for('trigger_scheduled_post', product_id=p.id) }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-p sm" title="Post to Facebook now">
+                  <i class="bi bi-send-fill"></i>
+                </button>
+              </form>
+              <button class="btn-o sm" title="Edit schedule"
+                onclick="editEntry({{ p.id }},'{{ p.scheduled_post_at.strftime('%Y-%m-%dT%H:%M') }}','{{ p.post_tone or 'friendly' }}',{{ '1' if p.recurring_enabled else '0' }},{{ p.recurring_days or 7 }})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="{{ url_for('cancel_scheduled_post', product_id=p.id) }}"
+                    onsubmit="return confirm('Cancel scheduled post for &quot;{{ p.name|e }}&quot;?')" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-d sm" title="Cancel">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div style="text-align:center;padding:48px 24px;color:var(--ink4);">
+              <i class="bi bi-calendar-x" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.4;"></i>
+              <div style="font-weight:700;color:var(--ink3);margin-bottom:4px;">No scheduled posts yet</div>
+              <div style="font-size:.8rem;">Use the form above to schedule a product or campaign post</div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Schedule Mode Tabs ────────────────────────────────────
+function setSchedMode(mode) {
+  document.getElementById('tabProduct').classList.toggle('active', mode==='product');
+  document.getElementById('tabCampaign').classList.toggle('active', mode==='campaign');
+  document.getElementById('panelProduct').classList.toggle('active', mode==='product');
+  document.getElementById('panelCampaign').classList.toggle('active', mode==='campaign');
+}
+
+// ── Campaign selector ─────────────────────────────────────
+var selectedCampaign = null;
+function selectCampaign(el) {
+  document.querySelectorAll('.camp-opt').forEach(function(o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
+  selectedCampaign = {
+    id:   el.dataset.id,
+    name: el.dataset.name,
+    disc: el.dataset.disc,
+    cat:  el.dataset.cat,
+    crop: el.dataset.crop
+  };
+  document.getElementById('selectedCampaignId').value = el.dataset.id;
+  document.getElementById('campSchedForm').action = '/admin/scheduled/set-campaign/' + el.dataset.id;
+  document.getElementById('noCampSel').style.display = 'none';
+  // Show product count hint
+  var msg = 'Will schedule all ' + (el.dataset.cat !== 'All' ? el.dataset.cat + ' ' : '') +
+            (el.dataset.crop ? '"' + el.dataset.crop + '" ' : '') +
+            'products with ' + el.dataset.disc + '% discount applied.';
+  document.getElementById('campProductMsg').textContent = msg;
+  document.getElementById('campProductPreview').style.display = 'block';
+}
+function validateProductSched() {
+  var sel = document.getElementById('prodSel');
+  if (!sel.value) {
+    alert('Please select a product before saving.');
+    sel.focus();
+    return false;
+  }
+  return true;
+}
+function validateCampSched() {
+  if (!selectedCampaign) {
+    document.getElementById('noCampSel').style.display = 'block';
+    return false;
+  }
+  return true;
+}
+function toggleCampRec() {
+  var on = document.getElementById('campRecToggle').checked;
+  document.getElementById('campRecDaysWrap').classList.toggle('d-none', !on);
+  var lbl = document.getElementById('campRecLbl');
+  lbl.textContent = on ? 'On' : 'Off';
+  lbl.style.color = on ? 'var(--grn)' : 'var(--ink4)';
+}
+
+// ── Date until helper ─────────────────────────────────────
+function onDateChange(inputId, wrapId, txtId) {
+  var val = document.getElementById(inputId).value;
+  var wrap = document.getElementById(wrapId);
+  var txt  = document.getElementById(txtId);
+  if (!val) { wrap.style.display='none'; return; }
+  var ms = new Date(val) - new Date();
+  wrap.style.display = 'block';
+  if (ms <= 0) { txt.textContent = 'Past — will fire immediately on save'; return; }
+  var d=Math.floor(ms/86400000), h=Math.floor((ms%86400000)/3600000), m=Math.floor((ms%3600000)/60000);
+  var parts=[];
+  if(d) parts.push(d+'d'); if(h) parts.push(h+'h'); if(m) parts.push(m+'m');
+  txt.textContent = (parts.join(' ')||'<1m') + ' from now (PHT)';
+}
+
+// ── Caption Templates ─────────────────────────────────────
+var TPLS = {
+  friendly: function(d) {
+    return '🌾 Hello, Mahal na Magsasaka! 🌾\n\nGreat news! '+d.name+' is now on SALE!\n'
+      +(d.disc>0?'💚 PRICE: ₱'+d.price+' ('+d.disc+'% OFF from ₱'+d.orig+')\n\n':'\n📦 Price: ₱'+d.price+'\n\n')
+      +(d.crop?'✅ Perfect for '+d.crop+'\n':'')+'✅ Packaging: '+d.pack+'\n'
+      +(d.stock<10?'⚠️ Only '+d.stock+' pcs left!\n':'')
+      +'\nInvest in quality for a better harvest! 🌱\n#FarmLife #AgriBusiness #AgriFortress';
+  },
+  urgent: function(d) {
+    return '🚨 LIMITED TIME OFFER! 🚨\n\n⏰ Don\'t miss out on '+d.name+'!\n'
+      +(d.disc>0?'Was: ₱'+d.orig+'\nNOW: ₱'+d.price+' ('+d.disc+'% OFF!)\n':'\nPrice: ₱'+d.price+'\n')
+      +(d.crop?'\nPerfect for '+d.crop+' farming.\n':'')
+      +(d.stock<20?'⚠️ Only '+d.stock+' pcs left in stock!\n':'')
+      +'\n📞 Order NOW before it\'s gone!\n#LimitedStock #AgriFortress';
+  },
+  professional: function(d) {
+    return '📣 PRODUCT ANNOUNCEMENT\n\n'+d.name+'\nCategory: '+d.cat+'\n'
+      +(d.crop?'Crop: '+d.crop+'\n':'')
+      +'\n💰 '+(d.disc>0?'Discount Price: ₱'+d.price+'\n   (Regular: ₱'+d.orig+')\n   '+d.disc+'% OFF':'Price: ₱'+d.price)
+      +'\n\nFor bulk orders, contact us directly.\n#AgriSupply #AgriFortress #Philippines';
+  },
+  seasonal: function(d) {
+    return '🌱 PLANTING SEASON SALE! 🌱\n\nPrepare your farm with the best!\n✨ '+d.name+'\n\n'
+      +(d.disc>0?'🏷️ Price: ₱'+d.price+' (was ₱'+d.orig+')\n💯 '+d.disc+'% DISCOUNT!\n':'Price: ₱'+d.price+'\n')
+      +(d.crop?'\n🌾 Best for: '+d.crop+'\n':'')
+      +(d.stock<10?'⚠️ Only '+d.stock+' left!\n':'')
+      +'\n#PlantingSeason #AgriFortress';
+  },
+  lowstock: function(d) {
+    return '⚠️ ALMOST GONE! Last Few Stocks! ⚠️\n\n'+d.name+' is selling FAST!\n'
+      +(d.disc>0?'🔥 NOW: ₱'+d.price+' (Save '+d.disc+'%!)\n':'\n💰 Price: ₱'+d.price+'\n')
+      +'\nOnly '+d.stock+' units remaining!\n\nOrder now at AgriFortress Supply Co.\n📍 Message us today!\n#LowStock #AgriFortress';
+  }
+};
+
+var scCapMode = 'auto';
+function getProductData() {
+  var sel = document.getElementById('prodSel');
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return null;
+  return { name:opt.text.replace(/…$/,'').trim(), cat:opt.dataset.category||'',
+           crop:opt.dataset.crop||'', pack:opt.dataset.pack||'unit',
+           disc:parseInt(opt.dataset.discount)||0,
+           price:parseFloat(opt.dataset.price||0).toFixed(2),
+           orig:parseFloat(opt.dataset.orig||0).toFixed(2),
+           stock:parseInt(opt.dataset.stock)||0 };
+}
+function refreshSchedPreview() {
+  var d=getProductData(); if(!d){document.getElementById('scPreviewBox').textContent='Select a product to preview caption…';return;}
+  var tone=document.getElementById('postTone').value;
+  document.getElementById('scPreviewBox').textContent=(TPLS[tone]||TPLS.friendly)(d);
+}
+function setSchedCapMode(mode) {
+  scCapMode=mode; document.getElementById('scCapMode').value=mode;
+  document.getElementById('scTabAuto').classList.toggle('active',mode==='auto');
+  document.getElementById('scTabManual').classList.toggle('active',mode==='manual');
+  document.getElementById('scAutoPanel').style.display=mode==='auto'?'block':'none';
+  document.getElementById('scManualPanel').style.display=mode==='manual'?'block':'none';
+}
+function fillSchedManual(){document.getElementById('scManualCap').value=document.getElementById('scPreviewBox').textContent;updateScCharCount();}
+function updateScCharCount(){document.getElementById('scCharCount').textContent=document.getElementById('scManualCap').value.length+' chars';}
+document.getElementById('scManualCap').addEventListener('input',updateScCharCount);
+
+// ── Product select change ─────────────────────────────────
+function onProdChange() {
+  var sel=document.getElementById('prodSel'); var id=sel.value;
+  if(!id){document.getElementById('prodInfoBadge').style.display='none';return;}
+  document.getElementById('schedForm').action='/admin/scheduled/set/'+id;
+  var opt=sel.options[sel.selectedIndex];
+  document.getElementById('postTone').value=opt.dataset.tone||'friendly';
+  if(opt.dataset.sched) document.getElementById('schedAt').value=opt.dataset.sched;
+  document.getElementById('recToggle').checked=opt.dataset.rec==='1';
+  document.getElementById('recDays').value=opt.dataset.days||7;
+  toggleRec(); refreshSchedPreview();
+  var disc=parseInt(opt.dataset.discount)||0;
+  if(disc>0){
+    document.getElementById('prodInfoBadge').style.display='block';
+    document.getElementById('prodDiscTag').textContent=disc+'% OFF';
+    document.getElementById('prodPriceTag').textContent='₱'+parseFloat(opt.dataset.price).toFixed(2);
+  } else { document.getElementById('prodInfoBadge').style.display='none'; }
+}
+function toggleRec() {
+  var on=document.getElementById('recToggle').checked;
+  document.getElementById('recDaysWrap').classList.toggle('d-none',!on);
+  var lbl=document.getElementById('recLbl');
+  lbl.textContent=on?'On':'Off'; lbl.style.color=on?'var(--grn)':'var(--ink4)';
+}
+function editEntry(pid,dt,tone,rec,days){
+  setSchedMode('product');
+  document.getElementById('prodSel').value=pid; onProdChange();
+  document.getElementById('schedAt').value=dt;
+  document.getElementById('postTone').value=tone;
+  document.getElementById('recToggle').checked=!!rec;
+  document.getElementById('recDays').value=days;
+  toggleRec(); refreshSchedPreview();
+  document.querySelector('.ag-card').scrollIntoView({behavior:'smooth'});
+}
+// ── Live countdowns (PHT) ─────────────────────────────────
+function runCountdowns() {
+  var now=new Date();
+  document.querySelectorAll('.cd-badge[data-ts]').forEach(function(b){
+    var ts=b.dataset.ts.replace('T',' '); var due=new Date(ts); var diff=due-now;
+    var span=b.querySelector('.cd-text'); if(!span)return;
+    if(diff<=0){
+      span.textContent='Overdue — click Check Now';
+      b.style.background='#fee2e2';b.style.borderColor='#fca5a5';b.style.color='#b91c1c';
+      return;
+    }
+    var d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),
+        m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+    span.textContent=d>0?d+'d '+h+'h '+m+'m':h>0?h+'h '+m+'m '+s+'s':m+'m '+s+'s';
+  });
+}
+runCountdowns(); setInterval(runCountdowns,1000);
+
+// ── Force-check ───────────────────────────────────────────
+function forceCheck(){
+  var btn=document.getElementById('forceCheckBtn'),dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
+  btn.disabled=true;
+  btn.innerHTML='<i class="bi bi-arrow-clockwise" style="display:inline-block;animation:spin .7s linear infinite;"></i> Firing…';
+  dot.style.background='#f59e0b'; txt.textContent='Running…';
+  var csrf=document.querySelector('meta[name="csrf-token"]');
+  fetch('/api/force-check-scheduled',{method:'POST',
+    headers:{'X-CSRFToken':csrf?csrf.getAttribute('content'):'','Content-Type':'application/json'}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    dot.style.background=d.success?(d.fired>0?'var(--grn)':'#f59e0b'):'var(--red)';
+    txt.textContent=d.message; btn.disabled=false;
+    btn.innerHTML='<i class="bi bi-arrow-clockwise"></i> Check Now';
+    if(d.fired>0) setTimeout(function(){location.reload();},1200);
+  })
+  .catch(function(){btn.disabled=false;btn.innerHTML='<i class="bi bi-arrow-clockwise"></i> Check Now';});
+}
+
+// ── Overdue detection ─────────────────────────────────────
+function checkOverdue(){
+  fetch('/api/scheduled-status').then(function(r){return r.json();}).then(function(d){
+    var overdue=d.posts.filter(function(p){return p.overdue;});
+    var bar=document.getElementById('overdueBar');
+    if(bar) bar.style.display=overdue.length>0?'block':'none';
+  }).catch(function(){});
+}
+checkOverdue(); setInterval(checkOverdue,30000);
+
+document.addEventListener('DOMContentLoaded',function(){toggleRec();toggleCampRec();});
+</script>
+{% endblock %}

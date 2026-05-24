@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AgriFortress Supply Co.{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <span class="brand-icon">🌾</span>
+                <span class="brand-text">Agri<strong>support</strong></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-house"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-grid"></i> Categories
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('index', category='Seeds') }}">🌱 Seeds</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('index', category='Fertilizer') }}">🧪 Fertilizer</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('index', category='Tools') }}">🔧 Tools</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('index', category='Equipment') }}">🚜 Equipment</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index', discounted='1') }}">
+                            <i class="bi bi-tag-fill text-danger"></i> Sale
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('track_order') }}">
+                            <i class="bi bi-truck"></i> Track Order
+                        </a>
+                    </li>
+                </ul>
+                <form class="d-flex me-3" action="{{ url_for('index') }}" method="GET">
+                    <div class="input-group search-group">
+                        <input class="form-control" type="search" name="search" placeholder="Search products..." value="{{ request.args.get('search', '') }}">
+                        <button class="btn btn-search" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+                </form>
+                {% if current_user.is_authenticated %}
+                  {% if current_user.is_admin %}
+                  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-admin me-2">
+                      <i class="bi bi-speedometer2"></i> Dashboard
+                  </a>
+                  {% else %}
+                  <a href="{{ url_for('my_orders') }}" class="btn btn-admin me-2">
+                      <i class="bi bi-bag-check"></i> My Orders
+                  </a>
+                  <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-sm me-2">
+                      <i class="bi bi-person-circle"></i> Profile
+                  </a>
+                  {% endif %}
+                  <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+                {% else %}
+                  <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-sm me-2">Sign In</a>
+                  <a href="{{ url_for('register') }}" class="btn btn-admin">
+                      <i class="bi bi-person-plus"></i> Register
+                  </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container mt-3">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>{% block content %}{% endblock %}</main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4 mb-2">
+                    <div class="footer-brand">
+                        <span class="brand-icon">🌾</span>
+                        <span class="brand-text">Agri<strong>Fortress</strong></span>
+                    </div>
+                    <p class="footer-desc">Your trusted partner in modern agriculture. Quality seeds, fertilizers, tools, and equipment for Filipino farmers since 2015.</p>
+                    <!-- Social Buttons -->
+                    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+                        <a href="https://www.facebook.com/agrifortress" target="_blank" rel="noopener"
+                           style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:#1877f2;color:#fff;font-size:.78rem;font-weight:700;text-decoration:none;transition:.15s;"
+                           onmouseover="this.style.background='#1558b0'" onmouseout="this.style.background='#1877f2'">
+                           <i class="bi bi-facebook"></i> Facebook
+                        </a>
+                        <a href="{{ url_for('track_order') }}"
+                           style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:linear-gradient(135deg,#2d6a4f,#1b4332);color:#fff;font-size:.78rem;font-weight:700;text-decoration:none;transition:.15s;">
+                           <i class="bi bi-truck"></i> Track Order
+                        </a>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2 mb-2">
+                    <h6 class="footer-heading">Products</h6>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('index', category='Seeds') }}">🌱 Seeds</a></li>
+                        <li><a href="{{ url_for('index', category='Fertilizer') }}">🧪 Fertilizer</a></li>
+                        <li><a href="{{ url_for('index', category='Tools') }}">🔧 Tools</a></li>
+                        <li><a href="{{ url_for('index', category='Equipment') }}">🚜 Equipment</a></li>
+                        <li><a href="{{ url_for('index', discounted='1') }}">🔥 Sale Items</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md-2 mb-2">
+                    <h6 class="footer-heading">Quick Links</h6>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('index', in_stock='1') }}">In Stock</a></li>
+                        <li><a href="{{ url_for('index', crop='Rice') }}">Rice Products</a></li>
+                        <li><a href="{{ url_for('index', crop='Corn') }}">Corn Products</a></li>
+                        <li><a href="{{ url_for('index', season='Wet Season') }}">Wet Season</a></li>
+                        <li><a href="{{ url_for('index', season='Dry Season') }}">Dry Season</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <h6 class="footer-heading">Contact Us</h6>
+                    <div style="display:flex;flex-direction:column;gap:9px;">
+                        <a href="{{ url_for('track_order') }}"
+                           class="footer-contact-row">
+                            <span class="fct-icon" style="background:#e8f5e9;color:#2d6a4f;">
+                                <i class="bi bi-truck" style="font-size:.9rem;"></i>
+                            </span>
+                            <div><div style="font-size:.8rem;font-weight:700;color:var(--footer-link-color,#c8e6b8);">Track Order</div>
+                            <div style="font-size:.72rem;opacity:.6;">Check your order status anytime</div></div>
+                        </a>
+                        <a href="https://www.facebook.com/agrifortress" target="_blank" rel="noopener"
+                           class="footer-contact-row">
+                            <span class="fct-icon" style="background:#e8edf8;color:#1877f2;"><i class="bi bi-facebook" style="font-size:.85rem;"></i></span>
+                            <div><div style="font-size:.8rem;font-weight:700;color:var(--footer-link-color,#c8e6b8);">Facebook Page</div>
+                            <div style="font-size:.72rem;opacity:.6;">facebook.com/agrifortress</div></div>
+                        </a>
+                        <div class="footer-contact-row">
+                            <span class="fct-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-telephone-fill" style="font-size:.85rem;"></i></span>
+                            <div><div style="font-size:.8rem;font-weight:700;color:var(--footer-link-color,#c8e6b8);">+63 XXX XXX XXXX</div>
+                            <div style="font-size:.72rem;opacity:.6;">Mon–Sat, 7AM – 6PM PHT</div></div>
+                        </div>
+                        <div class="footer-contact-row">
+                            <span class="fct-icon" style="background:#f0f4f9;color:#3D5A80;"><i class="bi bi-geo-alt-fill" style="font-size:.85rem;"></i></span>
+                            <div><div style="font-size:.8rem;font-weight:700;color:var(--footer-link-color,#c8e6b8);">Lipa City, Batangas</div>
+                            <div style="font-size:.72rem;opacity:.6;">Serving Calabarzon &amp; Nationwide</div></div>
+                        </div>
+                        <div class="footer-contact-row">
+                            <span class="fct-icon" style="background:#fce7f3;color:#be185d;"><i class="bi bi-envelope-fill" style="font-size:.85rem;"></i></span>
+                            <div><div style="font-size:.8rem;font-weight:700;color:var(--footer-link-color,#c8e6b8);">info@agrifortress.ph</div>
+                            <div style="font-size:.72rem;opacity:.6;">Email for bulk orders &amp; partnerships</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="footer-hr">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="footer-copy mb-0">© 2025 AgriFortress Supply Co. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <span class="footer-copy" style="opacity:.5;font-size:.72rem;">Image protection active · Secure ordering via Messenger</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ── Floating Messenger Button ──────────────────────────── -->
+    <div id="msn-fab" style="
+        position:fixed; bottom:24px; right:24px; z-index:9999;
+        display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+
+        <!-- Tooltip bubble (shows on hover) -->
+        <div id="msn-tooltip" style="
+            background:#fff; color:#0a0a0a; padding:10px 16px;
+            border-radius:14px; font-size:.82rem; font-weight:600;
+            box-shadow:0 4px 24px rgba(0,0,0,.18); white-space:nowrap;
+            opacity:0; transform:translateY(6px);
+            transition:opacity .22s,transform .22s; pointer-events:none;
+            border:1px solid #e8e8e8;">
+            🔍 Track Your Order!
+        </div>
+
+        <!-- FAB Button — Track Order -->
+        <a href="{{ url_for('track_order') }}"
+           id="msn-btn"
+           onmouseenter="document.getElementById('msn-tooltip').style.opacity='1';document.getElementById('msn-tooltip').style.transform='translateY(0)';"
+           onmouseleave="document.getElementById('msn-tooltip').style.opacity='0';document.getElementById('msn-tooltip').style.transform='translateY(6px)';"
+           style="
+            width:58px; height:58px; border-radius:50%;
+            background:linear-gradient(135deg,#2d6a4f 0%,#1b4332 100%);
+            display:flex; align-items:center; justify-content:center;
+            text-decoration:none; box-shadow:0 4px 20px rgba(45,106,79,.45);
+            transition:transform .2s, box-shadow .2s;
+            animation: fabPulse 2.5s ease-in-out infinite;"
+           onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 8px 28px rgba(45,106,79,.58)'"
+           onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(45,106,79,.45)'">
+            <i class="bi bi-truck" style="color:white;font-size:1.4rem;"></i>
+        </a>
+    </div>
+
+    <style>
+    .footer-contact-row {
+        display:flex; align-items:flex-start; gap:10px;
+        text-decoration:none; color:inherit;
+        transition:.15s;
+    }
+    .footer-contact-row:hover { opacity:.85; }
+    .fct-icon {
+        width:30px; height:30px; border-radius:8px; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center;
+        font-size:.9rem;
+    }
+    @keyframes fabPulse {
+        0%,100% { box-shadow:0 4px 20px rgba(0,132,255,.45); }
+        50%      { box-shadow:0 4px 32px rgba(0,132,255,.7); }
+    }
+    @keyframes dotPulse {
+        0%,100% { opacity:1; transform:scale(1); }
+        50%      { opacity:.6; transform:scale(.85); }
+    }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/protection.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+<script>
+// Navbar scroll shadow
+(function(){
+  var nav = document.getElementById('mainNav');
+  if(!nav) return;
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 8);
+  }, {passive: true});
+})();
+</script>
+</body>
+</html>

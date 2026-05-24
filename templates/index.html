@@ -1,0 +1,776 @@
+{% extends "base.html" %}
+{% block title %}AgriFortress Supply Co. — Premium Agricultural Products{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══ 3-COLOR SYSTEM: Forest Green · Harvest Gold · Rich Charcoal ══ */
+:root {
+  --g900:#071f0e; --g800:#0d3d20; --g700:#155e32; --g600:#1a7040;
+  --g500:#1f7a42; --g400:#2d9e58; --g300:#52be7a; --g200:#9adcb1;
+  --g100:#d4f0e0; --g50:#edf8f2;
+  --a800:#78490a; --a700:#92600a; --a600:#b8790d; --a500:#d4931a;
+  --a400:#e8aa38; --a300:#f0c164; --a200:#f7d899; --a100:#fcefd5; --a50:#fef8ed;
+  --c950:#090e0a; --c900:#141f16; --c800:#1e2e20; --c700:#2c3e2f;
+  --c600:#3d5241; --c500:#536958; --c400:#7a9480; --c300:#a8bfac;
+  --c200:#d0dcd2; --c100:#eaefeb; --c50:#f5f7f5;
+}
+
+/* ══ IMAGE PROTECTION ════════════════════════════════════════════ */
+.prot-wrap { position:relative; display:block; -webkit-user-select:none; user-select:none; }
+.prot-wrap img { display:block; -webkit-user-drag:none; user-drag:none; pointer-events:none; -webkit-touch-callout:none; }
+.prot-overlay { position:absolute; inset:0; z-index:10; background:transparent; cursor:default; }
+
+/* ══ HERO ════════════════════════════════════════════════════════ */
+.hero-banner {
+  background:
+    radial-gradient(ellipse 70% 60% at 90% 10%, rgba(212,147,26,.22) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 70% at 8% 85%, rgba(45,158,88,.28) 0%, transparent 50%),
+    linear-gradient(148deg, var(--c950) 0%, var(--g900) 35%, var(--g800) 65%, var(--c900) 100%);
+  position:relative; padding:90px 0 120px; overflow:hidden;
+}
+.hero-bg-pattern {
+  position:absolute; inset:0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='rgba(255,255,255,0.03)'%3E%3Ccircle cx='30' cy='30' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:60px 60px;
+}
+/* Gold top shimmer */
+.hero-banner::before {
+  content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+  background:linear-gradient(90deg,transparent,var(--a500),transparent);
+}
+.hero-float-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,.1); color:white; padding:6px 18px;
+  border-radius:100px; font-size:.82rem; font-weight:700;
+  margin-bottom:22px; border:1px solid rgba(212,147,26,.4);
+  backdrop-filter:blur(6px); letter-spacing:.03em;
+  animation:floatIn .6s ease both;
+}
+.hero-float-badge .dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--a400); box-shadow:0 0 0 3px rgba(212,147,26,.25);
+  animation:dotPulse 2s ease-in-out infinite;
+}
+@keyframes floatIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.hero-title {
+  font-size:clamp(2.8rem,6vw,5rem); font-weight:900; line-height:1.0;
+  color:white; margin-bottom:18px; text-shadow:0 4px 40px rgba(0,0,0,.3);
+  animation:floatIn .6s .1s ease both;
+}
+.hero-title em { font-style:italic; color:var(--a300); }
+.hero-sub {
+  color:rgba(255,255,255,.85); font-size:1.05rem;
+  max-width:500px; margin-bottom:36px; line-height:1.65;
+  animation:floatIn .6s .2s ease both;
+}
+.hero-actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:52px; animation:floatIn .6s .3s ease both; }
+.btn-hero-primary {
+  background:linear-gradient(135deg,var(--a500),var(--a600)); color:white; border:none;
+  padding:14px 30px; border-radius:100px; font-weight:800; font-size:.95rem;
+  box-shadow:0 6px 24px rgba(212,147,26,.4); transition:all .22s;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.btn-hero-primary:hover { transform:translateY(-3px); box-shadow:0 10px 36px rgba(212,147,26,.55); color:white; }
+.btn-hero-sale {
+  background:rgba(255,255,255,.1); color:white;
+  border:2px solid rgba(255,255,255,.3); padding:14px 26px;
+  border-radius:100px; font-weight:700; font-size:.92rem;
+  backdrop-filter:blur(4px); transition:all .22s;
+}
+.btn-hero-sale:hover { background:rgba(255,255,255,.22); color:white; border-color:rgba(255,255,255,.5); }
+.btn-hero-msn {
+  background:linear-gradient(135deg,var(--g700),var(--g600)); color:white;
+  border:none; padding:14px 24px; border-radius:100px;
+  font-weight:700; font-size:.92rem; transition:all .22s;
+  display:inline-flex; align-items:center; gap:8px;
+  box-shadow:0 4px 18px rgba(21,94,50,.45);
+}
+.btn-hero-msn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(21,94,50,.6); color:white; }
+
+.hero-stats { display:flex; gap:36px; animation:floatIn .6s .4s ease both; }
+.stat-item { color:white; }
+.stat-item strong { display:block; font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; line-height:1; color:var(--a300); }
+.stat-item span { font-size:.8rem; opacity:.65; letter-spacing:.03em; }
+
+.hero-visual {
+  position:absolute; right:0; top:0; bottom:0; width:42%;
+  display:flex; align-items:center; justify-content:center;
+  animation:floatIn .7s .2s ease both;
+}
+.hero-visual-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:40px; opacity:.9; }
+.hv-card {
+  background:rgba(255,255,255,.08); border:1px solid rgba(212,147,26,.25);
+  border-radius:16px; padding:20px 16px; text-align:center;
+  backdrop-filter:blur(6px); color:white;
+  animation:floatUp .5s ease both;
+}
+.hv-card:nth-child(2){animation-delay:.1s} .hv-card:nth-child(3){animation-delay:.15s} .hv-card:nth-child(4){animation-delay:.2s}
+@keyframes floatUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.hv-icon { font-size:2rem; margin-bottom:6px; }
+.hv-label { font-size:.72rem; font-weight:700; opacity:.65; letter-spacing:.05em; text-transform:uppercase; }
+.hv-val { font-size:1.1rem; font-weight:800; font-family:'Playfair Display',serif; color:var(--a300); }
+
+.hero-wave { position:absolute; bottom:-1px; left:0; right:0; line-height:0; }
+.hero-wave svg { display:block; width:100%; }
+
+/* ══ SALE TICKER ════════════════════════════════════════════════ */
+.sale-ticker {
+  background:linear-gradient(90deg,var(--g800),var(--a700),var(--g800));
+  background-size:200% 100%; animation:tickerBg 5s ease-in-out infinite;
+  overflow:hidden; padding:10px 0;
+}
+@keyframes tickerBg { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+.ticker-inner { display:flex; gap:0; align-items:center; white-space:nowrap; animation:tickerScroll 22s linear infinite; }
+.ticker-item { color:white; font-size:.82rem; font-weight:700; padding:0 28px; letter-spacing:.04em; }
+.ticker-sep { color:rgba(255,255,255,.4); font-size:.7rem; }
+@keyframes tickerScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ══ SECTIONS ════════════════════════════════════════════════ */
+.featured-section { padding:72px 0 48px; background:var(--c50); }
+.section-header { text-align:center; margin-bottom:48px; }
+.section-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,var(--g700),var(--g500));
+  color:white; padding:5px 16px; border-radius:100px;
+  font-size:.8rem; font-weight:800; margin-bottom:12px; letter-spacing:.04em;
+}
+.section-title { font-size:2rem; font-weight:900; color:var(--c900); margin-bottom:8px; letter-spacing:-.03em; }
+.section-sub { color:var(--c500); font-size:.95rem; }
+
+/* ══ FEATURED CARDS ═════════════════════════════════════════ */
+.featured-card {
+  background:white; border-radius:20px; overflow:hidden;
+  box-shadow:0 2px 12px rgba(14,33,18,.07),0 8px 32px rgba(14,33,18,.06);
+  transition:transform .28s,box-shadow .28s; border:1.5px solid var(--c200); height:100%;
+}
+.featured-card:hover { transform:translateY(-8px); box-shadow:0 12px 48px rgba(14,33,18,.18); border-color:var(--g300); }
+.featured-img-wrap { height:230px; overflow:hidden; background:var(--g50); position:relative; }
+.featured-img { width:100%; height:100%; object-fit:cover; transition:transform .4s; display:block; }
+.featured-card:hover .featured-img { transform:scale(1.07); }
+.featured-badge {
+  position:absolute; top:14px; left:14px; z-index:1;
+  background:linear-gradient(135deg,var(--g700),var(--g500)); color:white;
+  font-weight:800; font-size:.8rem; padding:5px 13px; border-radius:100px;
+  box-shadow:0 3px 12px rgba(21,94,50,.4); letter-spacing:.03em;
+}
+.featured-no-img { height:100%; display:flex; align-items:center; justify-content:center; font-size:4.5rem; }
+.featured-info { padding:22px; }
+.featured-cat { font-size:.68rem; font-weight:800; text-transform:uppercase; color:var(--a600); letter-spacing:.08em; }
+.featured-name { font-size:1.05rem; font-weight:700; color:var(--c900); margin:7px 0 12px; line-height:1.3; font-family:'Playfair Display',serif; }
+.featured-price { display:flex; align-items:baseline; gap:8px; }
+.price-now { font-size:1.45rem; font-weight:800; color:var(--g700); }
+.price-was { font-size:.9rem; color:var(--c300); text-decoration:line-through; }
+
+/* ══ CATEGORY NAV ════════════════════════════════════════════ */
+.category-nav-section { padding:48px 0; }
+.cat-nav-card {
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  padding:30px 16px; border-radius:18px; background:white;
+  border:2px solid var(--c200); text-decoration:none; color:var(--c800);
+  font-weight:700; transition:all .25s;
+  box-shadow:0 2px 8px rgba(14,33,18,.06);
+}
+.cat-nav-card:hover { border-color:var(--a500); color:var(--a700); transform:translateY(-5px); box-shadow:0 10px 32px rgba(14,33,18,.14); }
+.cat-nav-card:hover .cat-icon { transform:scale(1.15); }
+.cat-icon { font-size:2.8rem; line-height:1; transition:transform .2s; }
+.cat-label { font-size:.9rem; font-weight:700; }
+.cat-count { font-size:.72rem; color:var(--c400); font-weight:500; }
+
+/* ══ PRODUCT CARDS ════════════════════════════════════════════ */
+.product-card {
+  background:white; border-radius:18px;
+  border:1.5px solid var(--c100); overflow:hidden;
+  transition:transform .26s,box-shadow .26s,border-color .26s;
+  position:relative; height:100%;
+  box-shadow:0 2px 10px rgba(14,33,18,.06);
+}
+.product-card:hover { transform:translateY(-6px); box-shadow:0 14px 42px rgba(14,33,18,.15); border-color:var(--g300); }
+.low-stock-card { border-color:var(--a300); }
+.product-discount-badge {
+  position:absolute; top:10px; left:10px; z-index:3;
+  background:linear-gradient(135deg,var(--g700),var(--g500)); color:white;
+  font-weight:800; font-size:.75rem; padding:4px 10px; border-radius:100px;
+  box-shadow:0 2px 8px rgba(21,94,50,.35);
+}
+.product-lowstock-badge {
+  position:absolute; top:10px; right:10px; z-index:3;
+  background:linear-gradient(135deg,var(--a600),var(--a500)); color:white;
+  font-size:.7rem; font-weight:700; padding:4px 9px; border-radius:100px;
+}
+.product-img-wrap { height:195px; overflow:hidden; background:var(--g50); position:relative; }
+.product-img { width:100%; height:100%; object-fit:cover; transition:transform .35s; display:block; }
+.product-card:hover .product-img { transform:scale(1.07); }
+.product-no-img { height:100%; display:flex; align-items:center; justify-content:center; font-size:3.5rem; }
+.product-img-wrap::after {
+  content:''; position:absolute; inset:0; z-index:2;
+  background:linear-gradient(to top,rgba(14,33,18,.55) 0%,transparent 50%);
+  opacity:0; transition:opacity .25s;
+}
+.product-card:hover .product-img-wrap::after { opacity:1; }
+.product-body { padding:16px 18px 18px; }
+.product-meta { display:flex; align-items:center; gap:6px; margin-bottom:7px; flex-wrap:wrap; }
+.product-cat {
+  font-size:.67rem; font-weight:800; text-transform:uppercase;
+  padding:3px 9px; border-radius:8px; letter-spacing:.05em;
+}
+.cat-seeds      { background:var(--g100); color:var(--g700); }
+.cat-fertilizer { background:var(--a100); color:var(--a700); }
+.cat-tools      { background:var(--c100); color:var(--c700); }
+.cat-equipment  { background:#fee2e2; color:#b91c1c; }
+.product-crop { font-size:.72rem; color:var(--c400); }
+.product-name {
+  font-size:.97rem; font-weight:700; color:var(--c900);
+  margin-bottom:5px; line-height:1.35;
+  font-family:'Playfair Display',serif;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.product-desc {
+  font-size:.79rem; color:var(--c400); margin-bottom:10px; line-height:1.45;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.product-price-row { margin-bottom:8px; display:flex; align-items:baseline; gap:6px; }
+.price-current { font-size:1.2rem; font-weight:800; color:var(--g700); }
+.price-original { font-size:.85rem; color:var(--c300); text-decoration:line-through; }
+.product-pack { font-size:.75rem; color:var(--c400); margin-bottom:10px; display:flex; align-items:center; gap:4px; }
+.product-stock-bar { height:4px; background:var(--c100); border-radius:2px; margin-bottom:4px; overflow:hidden; }
+.stock-fill { height:100%; background:var(--g400); border-radius:2px; transition:width .5s; }
+.stock-fill.stock-low { background:var(--a500); }
+.stock-text { font-size:.75rem; color:var(--c400); margin-bottom:12px; }
+.btn-product-view {
+  width:100%; background:var(--g50); color:var(--g700);
+  border:1.5px solid var(--g200); border-radius:12px;
+  font-weight:700; padding:9px; font-size:.88rem; transition:all .2s;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-product-view:hover { background:var(--g700); color:white; border-color:var(--g700); }
+
+/* ══ TRUST STRIP ════════════════════════════════════════════ */
+.trust-strip {
+  background:white; border-top:1px solid var(--c200); border-bottom:1px solid var(--c100);
+  padding:24px 0;
+}
+.trust-item { display:flex; align-items:center; gap:12px; padding:8px 0; }
+.trust-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; background:var(--g50); border:1px solid var(--g100); }
+.trust-text strong { display:block; font-weight:700; font-size:.88rem; color:var(--c900); }
+.trust-text span { font-size:.75rem; color:var(--c400); }
+
+/* ══ CONTACT ════════════════════════════════════════════════ */
+.contact-section { padding:72px 0; background:white; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── HERO ──────────────────────────────────────────────── -->
+<section class="hero-banner">
+  <div class="hero-bg-pattern"></div>
+  <div class="container" style="position:relative;z-index:2;">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <div class="hero-float-badge">
+          <span class="dot"></span> Trusted by Filipino Farmers
+        </div>
+        <h1 class="hero-title">Grow More.<br><em>Earn More.</em></h1>
+        <p class="hero-sub">Premium seeds, fertilizers, tools &amp; equipment for a bountiful harvest. Serving Calabarzon &amp; nationwide.</p>
+        <div class="hero-actions">
+          <a href="#products" class="btn-hero-primary">
+            <i class="bi bi-bag-heart-fill"></i> Shop Now
+          </a>
+          <a href="{{ url_for('index', discounted='1') }}" class="btn-hero-sale">
+            🔥 Sale Items
+          </a>
+          <a href="#products" class="btn-hero-msn">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.46 5.56 3.746 7.28V22l3.416-1.879c.912.253 1.878.39 2.838.39 5.523 0 10-4.145 10-9.268C22 6.145 17.523 2 12 2zm1.088 12.48l-2.55-2.72-4.976 2.72 5.473-5.808 2.614 2.72 4.912-2.72-5.473 5.808z"/></svg>
+            Order Now
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item"><strong>500+</strong><span>Products</span></div>
+          <div class="stat-item"><strong>10K+</strong><span>Farmers Served</span></div>
+          <div class="stat-item"><strong>98%</strong><span>Satisfaction</span></div>
+          <div class="stat-item"><strong>Since '15</strong><span>Est. Batangas</span></div>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <div class="hero-visual-grid">
+          <div class="hv-card"><div class="hv-icon">🌱</div><div class="hv-label">Seeds</div><div class="hv-val">Premium</div></div>
+          <div class="hv-card"><div class="hv-icon">🧪</div><div class="hv-label">Fertilizer</div><div class="hv-val">Certified</div></div>
+          <div class="hv-card"><div class="hv-icon">🚜</div><div class="hv-label">Equipment</div><div class="hv-val">Heavy Duty</div></div>
+          <div class="hv-card"><div class="hv-icon">🔧</div><div class="hv-label">Tools</div><div class="hv-val">Farm Grade</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-wave">
+    <svg viewBox="0 0 1200 80" preserveAspectRatio="none"><path d="M0,40 C300,80 900,0 1200,40 L1200,80 L0,80 Z" fill="#f8faf4"/></svg>
+  </div>
+</section>
+
+<!-- ── SALE TICKER ───────────────────────────────────────── -->
+{% if featured %}
+<div class="sale-ticker">
+  <div class="ticker-inner">
+    {% for product in featured %}
+    <span class="ticker-item">🔥 {{ product.name }} — {{ product.discount_percentage|int }}% OFF · ₱{{ "%.0f"|format(product.discounted_price) }}</span>
+    <span class="ticker-sep">✦</span>
+    {% endfor %}
+    {% for product in featured %}
+    <span class="ticker-item">🔥 {{ product.name }} — {{ product.discount_percentage|int }}% OFF · ₱{{ "%.0f"|format(product.discounted_price) }}</span>
+    <span class="ticker-sep">✦</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── TRUST STRIP ───────────────────────────────────────── -->
+<div class="trust-strip">
+  <div class="container">
+    <div class="row g-3 justify-content-center text-center text-md-start">
+      <div class="col-6 col-md-3">
+        <div class="trust-item justify-content-center justify-content-md-start">
+          <div class="trust-icon" style="background:#dce8f5;">🌱</div>
+          <div class="trust-text"><strong>Authentic Products</strong><span>Certified suppliers</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="trust-item justify-content-center justify-content-md-start">
+          <div class="trust-icon" style="background:#e3f0fb;">🚚</div>
+          <div class="trust-text"><strong>Fast Delivery</strong><span>Nationwide shipping</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="trust-item justify-content-center justify-content-md-start">
+          <div class="trust-icon" style="background:#fdf0e0;">💬</div>
+          <div class="trust-text"><strong>Track Orders</strong><span>Real-time tracking</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="trust-item justify-content-center justify-content-md-start">
+          <div class="trust-icon" style="background:#fde8e4;">💰</div>
+          <div class="trust-text"><strong>Best Prices</strong><span>Seasonal discounts</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURED DEALS ────────────────────────────────────── -->
+{% if featured %}
+<section class="featured-section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">🔥 Limited Time</div>
+      <h2 class="section-title">Special Offers</h2>
+      <p class="section-sub">Exclusive discounts for this planting season</p>
+    </div>
+    <div class="row g-4">
+      {% for product in featured %}
+      <div class="col-md-4">
+        <a href="{{ url_for('product_detail', product_id=product.id) }}" class="featured-card-link">
+          <div class="featured-card">
+            <div class="featured-badge">-{{ product.discount_percentage|int }}% OFF</div>
+            <div class="featured-img-wrap prot-wrap">
+              {% if product.image_path %}
+              <img src="/secure-image/{{ product.id }}"
+                   class="featured-img" alt="{{ product.name }}">
+              <div class="prot-overlay" oncontextmenu="return false;"></div>
+              {% else %}
+              <div class="featured-no-img">
+                {% if product.category == 'Seeds' %}🌱{% elif product.category == 'Fertilizer' %}🧪{% elif product.category == 'Equipment' %}🚜{% else %}🔧{% endif %}
+              </div>
+              {% endif %}
+            </div>
+            <div class="featured-info">
+              <div class="featured-cat">{{ product.category }}</div>
+              <div class="featured-name">{{ product.name }}</div>
+              <div class="featured-price">
+                <span class="price-now">₱{{ "%.2f"|format(product.discounted_price) }}</span>
+                <span class="price-was">₱{{ "%.2f"|format(product.original_price) }}</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-4">
+      <a href="{{ url_for('index', discounted='1') }}" style="color:#3D5A80;font-weight:700;font-size:.9rem;text-decoration:none;">
+        View all sale items <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── CATEGORY NAV ──────────────────────────────────────── -->
+<section class="category-nav-section" style="background:#f8faf4;">
+  <div class="container">
+    <div class="section-header" style="margin-bottom:28px;">
+      <div class="section-badge" style="background:linear-gradient(135deg,#3D5A80,#2d4460);">🌾 Browse By Category</div>
+    </div>
+    <div class="row g-3 justify-content-center">
+      <div class="col-6 col-md-3">
+        <a href="{{ url_for('index', category='Seeds') }}" class="cat-nav-card seeds">
+          <span class="cat-icon">🌱</span>
+          <span class="cat-label">Seeds</span>
+          <span class="cat-count">Rice, Corn &amp; Vegetables</span>
+        </a>
+      </div>
+      <div class="col-6 col-md-3">
+        <a href="{{ url_for('index', category='Fertilizer') }}" class="cat-nav-card fertilizer">
+          <span class="cat-icon">🧪</span>
+          <span class="cat-label">Fertilizer</span>
+          <span class="cat-count">NPK, Urea &amp; Organic</span>
+        </a>
+      </div>
+      <div class="col-6 col-md-3">
+        <a href="{{ url_for('index', category='Tools') }}" class="cat-nav-card tools">
+          <span class="cat-icon">🔧</span>
+          <span class="cat-label">Tools</span>
+          <span class="cat-count">Sprayers &amp; Hand Tools</span>
+        </a>
+      </div>
+      <div class="col-6 col-md-3">
+        <a href="{{ url_for('index', category='Equipment') }}" class="cat-nav-card equipment">
+          <span class="cat-icon">🚜</span>
+          <span class="cat-label">Equipment</span>
+          <span class="cat-count">Tractors &amp; Machines</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRODUCTS ──────────────────────────────────────────── -->
+<section class="products-section" id="products">
+  <div class="container">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-lg-3 mb-4">
+        <div class="filter-card">
+          <h5 class="filter-title"><i class="bi bi-funnel-fill" style="color:#3D5A80;"></i> Filter Products</h5>
+          <form method="GET" action="{{ url_for('index') }}" id="filterForm">
+            <div class="filter-group">
+              <label class="filter-label">Category</label>
+              <select name="category" class="form-select filter-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat[0] }}" {% if current_filters.category == cat[0] %}selected{% endif %}>{{ cat[0] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Crop Type</label>
+              <select name="crop" class="form-select filter-select" onchange="this.form.submit()">
+                <option value="">All Crops</option>
+                {% for crop in crops %}{% if crop[0] %}
+                <option value="{{ crop[0] }}" {% if current_filters.crop == crop[0] %}selected{% endif %}>{{ crop[0] }}</option>
+                {% endif %}{% endfor %}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Season</label>
+              <select name="season" class="form-select filter-select" onchange="this.form.submit()">
+                <option value="">All Seasons</option>
+                {% for s in seasons %}{% if s[0] %}
+                <option value="{{ s[0] }}" {% if current_filters.season == s[0] %}selected{% endif %}>{{ s[0] }}</option>
+                {% endif %}{% endfor %}
+              </select>
+            </div>
+            <div class="filter-group">
+              <div class="form-check filter-check">
+                <input class="form-check-input" type="checkbox" name="discounted" value="1"
+                       id="chkDiscount" {% if current_filters.discounted %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label" for="chkDiscount">🏷️ On Sale Only</label>
+              </div>
+              <div class="form-check filter-check mt-2">
+                <input class="form-check-input" type="checkbox" name="in_stock" value="1"
+                       id="chkStock" {% if current_filters.in_stock %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label" for="chkStock">✅ In Stock Only</label>
+              </div>
+            </div>
+            {% if current_filters.category or current_filters.crop or current_filters.discounted or current_filters.in_stock %}
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm w-100">
+              <i class="bi bi-x-circle"></i> Clear Filters
+            </a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- Contact card -->
+        <div class="filter-card mt-3" style="background:linear-gradient(135deg,#eef2f8,#dce8f5);border-color:#b0cfe0;">
+          <h5 class="filter-title" style="color:#3D5A80;font-size:.88rem;"><i class="bi bi-headset"></i> Need Help?</h5>
+          <p style="font-size:.78rem;color:#374151;margin-bottom:10px;line-height:1.5;">Can't find what you need? Ask us!</p>
+          <a href="/order/track" target="_blank" rel="noopener"
+             style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;
+                    background:linear-gradient(135deg,#0084ff,#00b0ff);color:#fff;text-decoration:none;
+                    font-size:.8rem;font-weight:700;margin-bottom:7px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.46 5.56 3.746 7.28V22l3.416-1.879c.912.253 1.878.39 2.838.39 5.523 0 10-4.145 10-9.268C22 6.145 17.523 2 12 2zm1.088 12.48l-2.55-2.72-4.976 2.72 5.473-5.808 2.614 2.72 4.912-2.72-5.473 5.808z"/></svg>
+            Track My Order
+          </a>
+          <div style="font-size:.7rem;color:#6b7280;text-align:center;">Mon–Sat · 7AM–6PM PHT</div>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      <div class="col-lg-9">
+        <div class="products-header d-flex align-items-center justify-content-between mb-4">
+          <p class="products-count mb-0">
+            Showing <strong>{{ products.total }}</strong> product{{ 's' if products.total != 1 }}
+            {% if current_filters.category %} in <strong>{{ current_filters.category }}</strong>{% endif %}
+          </p>
+          <div style="font-size:.78rem;color:#9aaa99;">
+            <i class="bi bi-shield-lock-fill" style="color:#3D5A80;font-size:.8rem;"></i>
+            Images are watermarked &amp; protected
+          </div>
+        </div>
+
+        {% if products.items %}
+        <div class="row g-4" id="productsGrid">
+          {% for product in products.items %}
+          <div class="col-sm-6 col-xl-4 product-item">
+            <div class="product-card {% if product.is_low_stock %}low-stock-card{% endif %}">
+              {% if product.discount_percentage > 0 %}
+              <div class="product-discount-badge">-{{ product.discount_percentage|int }}%</div>
+              {% endif %}
+              {% if product.is_low_stock %}
+              <div class="product-lowstock-badge">⚠️ Low</div>
+              {% endif %}
+
+              <!-- PROTECTED IMAGE WRAP -->
+              <div class="product-img-wrap prot-wrap">
+                {% if product.image_path %}
+                <img src="/secure-image/{{ product.id }}"
+                     class="product-img"
+                     alt="{{ product.name }}">
+                <div class="prot-overlay" oncontextmenu="return false;"></div>
+                {% else %}
+                <div class="product-no-img">
+                  {% if product.category == 'Seeds' %}🌱{% elif product.category == 'Fertilizer' %}🧪{% elif product.category == 'Equipment' %}🚜{% else %}🔧{% endif %}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="product-body">
+                <div class="product-meta">
+                  <span class="product-cat cat-{{ product.category|lower|replace(' ','-') }}">{{ product.category }}</span>
+                  {% if product.crop_type %}
+                  <span class="product-crop">🌾 {{ product.crop_type }}</span>
+                  {% endif %}
+                </div>
+                <h3 class="product-name">{{ product.name }}</h3>
+                {% if product.description %}
+                <p class="product-desc">{{ product.description[:90] }}{% if product.description|length > 90 %}…{% endif %}</p>
+                {% endif %}
+                <div class="product-price-row">
+                  {% if product.discount_percentage > 0 %}
+                  <span class="price-current">₱{{ "%.2f"|format(product.discounted_price) }}</span>
+                  <span class="price-original">₱{{ "%.2f"|format(product.original_price) }}</span>
+                  {% else %}
+                  <span class="price-current">₱{{ "%.2f"|format(product.price) }}</span>
+                  {% endif %}
+                </div>
+                {% if product.packaging_type %}
+                <p class="product-pack"><i class="bi bi-box-seam" style="color:#3D5A80;"></i> {{ product.packaging_type }}</p>
+                {% endif %}
+                <div class="product-stock-bar">
+                  <div class="stock-fill {% if product.is_low_stock %}stock-low{% endif %}"
+                       style="width:{{ [100,(product.stock_quantity/(product.stock_threshold*5)*100)|int]|min }}%"></div>
+                </div>
+                <p class="stock-text {% if product.is_low_stock %}text-danger{% endif %}">
+                  {{ product.stock_quantity }} in stock{% if product.is_low_stock %} ⚠️{% endif %}
+                </p>
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn-product-view">
+                  View Details <i class="bi bi-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if products.pages > 1 %}
+        <nav class="mt-5">
+          <ul class="pagination justify-content-center">
+            {% if products.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('index', page=products.prev_num, **current_filters) }}"><i class="bi bi-chevron-left"></i></a>
+            </li>
+            {% endif %}
+            {% for page_num in products.iter_pages() %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == products.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('index', page=page_num, **current_filters) }}">{{ page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% endfor %}
+            {% if products.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('index', page=products.next_num, **current_filters) }}"><i class="bi bi-chevron-right"></i></a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🌾</div>
+          <h3>No products found</h3>
+          <p>Try adjusting your filters or <a href="{{ url_for('index') }}">view all products</a>.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ───────────────────────────────────────────── -->
+<section class="contact-section" id="contact">
+  <div class="container">
+    <div class="section-header" style="margin-bottom:40px;">
+      <div class="section-badge" style="background:linear-gradient(135deg,#0084ff,#00b0ff);">📞 Contact Us</div>
+      <h2 class="section-title">We're Here to Help</h2>
+      <p class="section-sub">Reach us for orders, bulk quotes, or farming advice</p>
+    </div>
+    <div class="row g-4 align-items-stretch">
+      <div class="col-lg-5">
+        <div style="background:linear-gradient(135deg,#1b4332,#2d6a4f);border-radius:20px;padding:36px;color:#fff;height:100%;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:2.8rem;margin-bottom:14px;">🛒</div>
+            <h3 style="font-size:1.35rem;font-weight:800;margin-bottom:10px;">Order Online — Easy & Fast</h3>
+            <p style="font-size:.88rem;opacity:.9;line-height:1.6;margin-bottom:20px;">Browse, select, and order directly. J&T Express nationwide delivery!</p>
+            <ul style="list-style:none;padding:0;margin:0 0 24px;font-size:.82rem;opacity:.9;">
+              <li style="padding:4px 0;">✅ Simple order form — no app needed</li>
+              <li style="padding:4px 0;">🚚 J&T Express · Nationwide Delivery</li>
+              <li style="padding:4px 0;">💵 COD, GCash &amp; Bank Transfer</li>
+              <li style="padding:4px 0;">🔍 Real-time order tracking</li>
+            </ul>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="{{ url_for('index') }}#products"
+               style="display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 20px;
+                      background:white;color:#1b4332;
+                      border-radius:14px;font-weight:800;font-size:.9rem;text-decoration:none;transition:.18s;">
+              🛒 Shop &amp; Order Now
+            </a>
+            <a href="{{ url_for('track_order') }}"
+               style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;
+                      background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.35);
+                      border-radius:14px;color:#fff;font-weight:700;font-size:.88rem;text-decoration:none;transition:.18s;">
+              🔍 Track My Order
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;height:100%;">
+          <a href="https://www.facebook.com/agrifortress" target="_blank" rel="noopener"
+             style="background:#f0f4ff;border:1.5px solid #dce7ff;border-radius:16px;padding:22px;text-decoration:none;transition:.2s;display:flex;flex-direction:column;gap:10px;"
+             onmouseover="this.style.borderColor='#1877f2'" onmouseout="this.style.borderColor='#dce7ff'">
+            <div style="width:42px;height:42px;background:#1877f2;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-facebook" style="color:#fff;font-size:1.1rem;"></i>
+            </div>
+            <div><div style="font-weight:700;font-size:.88rem;color:#1e293b;">Facebook Page</div>
+            <div style="font-size:.76rem;color:#64748b;margin-top:3px;">@agrifortress</div>
+            <div style="font-size:.72rem;color:#94a3b8;margin-top:5px;">Follow for promos &amp; tips</div></div>
+          </a>
+          <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;">
+            <div style="width:42px;height:42px;background:#f59e0b;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-telephone-fill" style="color:#fff;font-size:1rem;"></i>
+            </div>
+            <div><div style="font-weight:700;font-size:.88rem;color:#1e293b;">Call / Text</div>
+            <div style="font-size:.8rem;color:#78350f;margin-top:3px;font-weight:600;">+63 XXX XXX XXXX</div>
+            <div style="font-size:.72rem;color:#92400e;margin-top:5px;">Mon–Sat, 7AM – 6PM PHT</div></div>
+          </div>
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;">
+            <div style="width:42px;height:42px;background:#3D5A80;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-geo-alt-fill" style="color:#fff;font-size:1rem;"></i>
+            </div>
+            <div><div style="font-weight:700;font-size:.88rem;color:#1e293b;">Store Location</div>
+            <div style="font-size:.8rem;color:#166534;margin-top:3px;font-weight:600;">Lipa City, Batangas</div>
+            <div style="font-size:.72rem;color:#166534;margin-top:5px;">Calabarzon &amp; Nationwide Delivery</div></div>
+          </div>
+          <div style="background:#fdf4ff;border:1.5px solid #e9d5ff;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;">
+            <div style="width:42px;height:42px;background:#9333ea;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-envelope-fill" style="color:#fff;font-size:1rem;"></i>
+            </div>
+            <div><div style="font-weight:700;font-size:.88rem;color:#1e293b;">Email</div>
+            <div style="font-size:.76rem;color:#6b21a8;margin-top:3px;font-weight:600;">info@agrifortress.ph</div>
+            <div style="font-size:.72rem;color:#7e22ce;margin-top:5px;">Bulk orders &amp; partnerships</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── IMAGE PROTECTION JS ───────────────────────────────── -->
+<script>
+(function () {
+  'use strict';
+
+  /* 1. Block ALL right-click context menus on the entire page ─────────── */
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }, true);   /* capture phase — fires before the element's own handler */
+
+  /* 2. Block drag of any image ──────────────────────────────────────────── */
+  document.addEventListener('dragstart', function (e) {
+    if (e.target.tagName === 'IMG') {
+      e.preventDefault(); return false;
+    }
+  });
+
+  /* 3. Block keyboard save / print / view-source ────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    var k = e.key ? e.key.toLowerCase() : '';
+    if ((e.ctrlKey || e.metaKey) &&
+        (k === 's' || k === 'p' || k === 'u' || k === 'a')) {
+      e.preventDefault(); return false;
+    }
+    if (k === 'printscreen') { e.preventDefault(); return false; }
+  });
+
+  /* 4. Wipe clipboard after PrintScreen ────────────────────────────────── */
+  document.addEventListener('keyup', function (e) {
+    if (e.key === 'PrintScreen') {
+      try { navigator.clipboard && navigator.clipboard.writeText(''); } catch (_) {}
+    }
+  });
+
+  /* 5. Block mobile long-press "save image" ──────────────────────────────── */
+  var _lpt;
+  document.addEventListener('touchstart', function (e) {
+    var t = e.target;
+    if (t.tagName === 'IMG' || t.classList.contains('prot-overlay') ||
+        t.classList.contains('prot-wrap') || t.closest('.prot-wrap')) {
+      _lpt = setTimeout(function () { e.preventDefault(); }, 400);
+    }
+  }, { passive: false });
+  document.addEventListener('touchend',  function () { clearTimeout(_lpt); });
+  document.addEventListener('touchmove', function () { clearTimeout(_lpt); });
+
+  /* 6. Make sure pointer-events:none stays on all .prot-wrap imgs ────────── */
+  function lockImages() {
+    document.querySelectorAll('.prot-wrap img').forEach(function (img) {
+      img.style.pointerEvents = 'none';
+      img.setAttribute('draggable', 'false');
+      img.ondragstart   = function() { return false; };
+      img.oncontextmenu = function() { return false; };
+    });
+  }
+  document.addEventListener('DOMContentLoaded', lockImages);
+  /* Also run once inline for images already in DOM */
+  lockImages();
+})();
+</script>
+
+{% endblock %}

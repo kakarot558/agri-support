@@ -1,0 +1,256 @@
+{% extends "admin_base.html" %}
+{% block title %}Order {{ order.order_number }} — Admin{% endblock %}
+{% block page_title %}Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<style>
+.two-col-ord{display:grid;grid-template-columns:1fr 340px;gap:18px;}
+@media(max-width:768px){.two-col-ord{grid-template-columns:1fr;}}
+.sp-pill{display:inline-block;padding:3px 12px;border-radius:100px;font-size:.78rem;font-weight:700;}
+.sp-Pending{background:#fff3cd;color:#856404;}
+.sp-Confirmed{background:#cfe2ff;color:#084298;}
+.sp-Processing{background:#e2e3e5;color:#41464b;}
+.sp-Shipped{background:#d1ecf1;color:#0c5460;}
+.sp-Delivered{background:#d1fae5;color:#065f46;}
+.sp-Cancelled{background:#fee2e2;color:#991b1b;}
+.d-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);font-size:.88rem;}
+.d-row:last-child{border:none;}
+.d-row .lbl{color:var(--ink4);}
+.d-row .val{font-weight:600;color:var(--ink);text-align:right;max-width:60%;}
+.item-card{background:#f8faf8;border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--brd);}
+
+/* stepper */
+.stepper{display:flex;align-items:flex-start;margin:0 0 16px;}
+.step-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+.step-item:not(:last-child)::after{content:'';position:absolute;top:15px;left:50%;width:100%;height:2px;background:var(--brd);z-index:0;}
+.step-item.done::after{background:var(--grn);}
+.step-circle{width:30px;height:30px;border-radius:50%;border:2px solid var(--brd);background:white;display:flex;align-items:center;justify-content:center;font-size:.75rem;position:relative;z-index:1;}
+.step-item.done .step-circle{background:var(--grn);border-color:var(--grn);color:white;}
+.step-item.active .step-circle{border-color:var(--grn);box-shadow:0 0 0 4px rgba(61,90,128,.15);}
+.step-label{font-size:.6rem;text-align:center;margin-top:4px;color:var(--ink4);}
+.step-item.done .step-label,.step-item.active .step-label{color:var(--grn);font-weight:700;}
+
+/* timeline */
+.tl-row{display:flex;gap:12px;position:relative;padding-bottom:14px;}
+.tl-row:not(:last-child)::before{content:'';position:absolute;left:11px;top:24px;width:2px;bottom:0;background:var(--brd);}
+.tl-dot{width:24px;height:24px;border-radius:50%;background:var(--grn);border:2px solid var(--grn);color:white;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;z-index:1;position:relative;}
+.tl-dot.old{background:var(--grn-lt);color:var(--grn);border-color:var(--grn-lt);}
+.tl-body{flex:1;}
+.tl-st{font-size:.84rem;font-weight:700;}
+.tl-actor{font-size:.72rem;color:var(--ink4);}
+.tl-note{font-size:.78rem;color:var(--ink);background:#f8faf8;border-radius:7px;padding:5px 8px;margin-top:4px;border-left:2px solid var(--grn-lt);}
+.tl-time{font-size:.68rem;color:var(--ink4);margin-top:3px;}
+</style>
+
+<div style="margin-bottom:16px;">
+  <a href="{{ url_for('admin_orders') }}" class="btn-o">← Back to Orders</a>
+</div>
+
+<div class="two-col-ord">
+  <div>
+    <!-- Stepper -->
+    {% set steps = ['Pending','Confirmed','Processing','Shipped','Delivered'] %}
+    {% set cur_idx = steps.index(order.status) if order.status in steps else 0 %}
+    {% if order.status != 'Cancelled' %}
+    <div class="ag-card" style="margin-bottom:14px;">
+      <div class="ag-card-body">
+        <div class="stepper">
+          {% for st in steps %}{% set idx = loop.index0 %}
+          <div class="step-item {% if idx < cur_idx %}done{% elif idx == cur_idx %}active{% endif %}">
+            <div class="step-circle">{% if idx < cur_idx %}✓{% else %}{{ loop.index }}{% endif %}</div>
+            <div class="step-label">{{ st }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Items -->
+    <div class="ag-card">
+      <div class="ag-card-head">
+        <h6 class="ag-card-title">📦 Items ({{ order.item_count }})</h6>
+        <span class="sp-pill sp-{{ order.status }}">{{ order.status }}</span>
+      </div>
+      <div class="ag-card-body">
+        {% for item in order.items %}
+        <div class="item-card">
+          <div style="font-weight:700;">{{ item.product_name }}</div>
+          <div style="font-size:.78rem;color:var(--ink4);margin-top:3px;">
+            Qty: <strong>{{ item.quantity }}</strong>{% if item.packaging_type %} {{ item.packaging_type }}{% endif %}
+            &nbsp;·&nbsp; ₱{{ "%.2f"|format(item.unit_price) }} ea
+            &nbsp;·&nbsp; <strong>₱{{ "%.2f"|format(item.subtotal) }}</strong>
+          </div>
+        </div>
+        {% endfor %}
+        <div style="margin-top:10px;border-top:2px solid var(--brd);padding-top:10px;">
+          <div class="d-row"><span class="lbl">Subtotal</span><span class="val">₱{{ "%.2f"|format(order.subtotal) }}</span></div>
+          <div class="d-row"><span class="lbl">Shipping</span><span class="val">{% if order.shipping_fee==0 %}FREE{% else %}₱{{ "%.2f"|format(order.shipping_fee) }}{% endif %}</span></div>
+          <div class="d-row" style="font-size:1rem;"><span class="lbl"><strong>Total</strong></span><span class="val" style="color:var(--grn);font-size:1.05rem;">₱{{ "%.2f"|format(order.total_amount) }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer -->
+    <div class="ag-card">
+      <div class="ag-card-head"><h6 class="ag-card-title">👤 Customer</h6></div>
+      <div class="ag-card-body">
+        <div class="d-row"><span class="lbl">Name</span><span class="val">{{ order.customer_name }}</span></div>
+        <div class="d-row"><span class="lbl">Phone</span><span class="val">{{ order.customer_phone }}</span></div>
+        {% if order.customer_email %}<div class="d-row"><span class="lbl">Email</span><span class="val">{{ order.customer_email }}</span></div>{% endif %}
+        <div class="d-row"><span class="lbl">Address</span><span class="val">{{ order.shipping_address }}{% if order.city %}, {{ order.city }}{% endif %}{% if order.province %}, {{ order.province }}{% endif %}</span></div>
+        <div class="d-row"><span class="lbl">Payment</span><span class="val">{{ order.payment_method }} · {{ order.payment_status }}</span></div>
+        <div class="d-row"><span class="lbl">Ordered</span><span class="val">{{ order.created_at.strftime('%b %d, %Y %I:%M %p') }}</span></div>
+        {% if order.notes %}<div class="d-row"><span class="lbl">Notes</span><span class="val">{{ order.notes }}</span></div>{% endif %}
+        {% if order.customer %}<div class="d-row"><span class="lbl">Account</span><span class="val" style="color:var(--grn);">@{{ order.customer.username }}</span></div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Order Timeline -->
+    {% if order.events %}
+    <div class="ag-card">
+      <div class="ag-card-head"><h6 class="ag-card-title">📋 Order Timeline</h6></div>
+      <div class="ag-card-body">
+        {% for ev in order.events|reverse %}
+        <div class="tl-row">
+          <div class="tl-dot {% if not loop.first %}old{% endif %}">
+            {% if ev.status=='Pending' %}📋{% elif ev.status=='Confirmed' %}✅{% elif ev.status=='Processing' %}⚙️{% elif ev.status=='Shipped' %}🚚{% elif ev.status=='Delivered' %}🎉{% elif ev.status=='Cancelled' %}❌{% else %}•{% endif %}
+          </div>
+          <div class="tl-body">
+            <div class="tl-st">{{ ev.status }}</div>
+            {% if ev.actor %}<div class="tl-actor">{{ ev.actor }}</div>{% endif %}
+            {% if ev.note %}<div class="tl-note">{{ ev.note }}</div>{% endif %}
+            <div class="tl-time">{{ ev.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Update -->
+  <div>
+    <div class="ag-card" style="position:sticky;top:80px;">
+      <div class="ag-card-head"><h6 class="ag-card-title">⚙️ Update Order</h6></div>
+      <div class="ag-card-body">
+        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div style="margin-bottom:12px;">
+            <label style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);display:block;margin-bottom:5px;">Order Status</label>
+            <select name="status" class="form-select" style="border-radius:8px;border:2px solid var(--brd);padding:9px 12px;font-size:.88rem;width:100%;">
+              {% for s in ['Pending','Confirmed','Processing','Shipped','Delivered','Cancelled'] %}
+              <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);display:block;margin-bottom:5px;">Tracking Number</label>
+            <input name="tracking_number" class="form-control" placeholder="Courier tracking…" value="{{ order.tracking_number or '' }}" style="border-radius:8px;border:2px solid var(--brd);padding:9px 12px;font-size:.88rem;width:100%;">
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);display:block;margin-bottom:5px;">Payment Status</label>
+            <select name="payment_status" class="form-select" style="border-radius:8px;border:2px solid var(--brd);padding:9px 12px;font-size:.88rem;width:100%;">
+              <option value="Unpaid" {% if order.payment_status=='Unpaid' %}selected{% endif %}>Unpaid</option>
+              <option value="Paid"   {% if order.payment_status=='Paid'   %}selected{% endif %}>Paid</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <label style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);display:block;margin-bottom:5px;">Admin Note (visible to customer)</label>
+            <textarea name="admin_note" class="form-control" rows="3" placeholder="e.g. Your order is being packed, will ship tomorrow…" style="border-radius:8px;border:2px solid var(--brd);padding:9px 12px;font-size:.84rem;width:100%;resize:vertical;"></textarea>
+          </div>
+
+          <button class="btn-p" style="width:100%;padding:12px;" type="submit">💾 Save & Log Update</button>
+        </form>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--brd);">
+          <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);margin-bottom:8px;">📦 J&T Express Live Tracking</div>
+          {% if order.tracking_number %}
+          <button class="btn-o sm" style="width:100%;" onclick="trackMSC('{{ order.tracking_number }}')">🔍 Check Status</button>
+          <div id="mscResult" style="margin-top:8px;font-size:.76rem;"></div>
+          {% else %}
+          <div style="font-size:.76rem;color:var(--ink4);">Add tracking number above.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkTracking(tn, provider) {
+  var el = document.getElementById('trackResult');
+  el.innerHTML = '<span style="color:var(--ink4);">⏳ Fetching live status…</span>';
+  var url = '/api/jt-track?tracking=' + encodeURIComponent(tn);
+  if (provider) url += '&provider=' + encodeURIComponent(provider);
+  fetch(url)
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success) {
+        el.innerHTML = '<div style="margin-top:6px;">' +
+          '<span style="color:#856404;">⚠️ Live data unavailable.</span><br>' +
+          (d.manual_url ? '<a href="' + d.manual_url + '" target="_blank" style="color:var(--primary);font-weight:700;font-size:.76rem;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">📦 Track on carrier website ↗</a>' : '') +
+          '</div>';
+        return;
+      }
+      var data  = d.data || {};
+      var cps   = data.checkpoints || [];
+      var html  = '<div style="background:#f0f4ff;border-radius:8px;padding:8px 10px;margin-top:4px;">';
+      html += '<div style="font-weight:700;font-size:.8rem;color:var(--primary-dark);margin-bottom:6px;">📦 ' + (data.status||'').replace(/_/g,' ').toUpperCase() + ' <span style="font-size:.7rem;font-weight:400;color:#666;">via ' + (d.source||'') + '</span></div>';
+      if (data.latest_event) html += '<div style="font-size:.76rem;color:#333;margin-bottom:6px;">' + data.latest_event + '</div>';
+      if (data.estimated_delivery) html += '<div style="font-size:.72rem;color:#166534;margin-bottom:6px;">📅 Est. delivery: ' + data.estimated_delivery + '</div>';
+      if (cps.length) {
+        html += '<div style="font-size:.7rem;font-weight:700;color:#666;margin-bottom:4px;">HISTORY (' + cps.length + ' events)</div>';
+        cps.slice(0,5).forEach(function(cp) {
+          html += '<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #e0e7ff;">';
+          html += '<div style="font-size:.68rem;color:#888;white-space:nowrap;flex-shrink:0;">' + (cp.timestamp||'').substring(0,16) + '</div>';
+          html += '<div style="font-size:.7rem;color:#333;flex:1;">' + (cp.event||'') + (cp.location ? ' <span style="color:#666;">· ' + cp.location + '</span>' : '') + '</div>';
+          html += '</div>';
+        });
+        if (cps.length > 5) html += '<div style="font-size:.68rem;color:#888;margin-top:3px;">+ ' + (cps.length-5) + ' more events</div>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    })
+    .catch(function(err) { el.innerHTML = '<span style="color:#dc3545;">❌ Network error</span>'; });
+}
+
+function createShipment(orderId) {
+  var el  = document.getElementById('shipResult');
+  var btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Booking…';
+  el.innerHTML = '<span style="color:var(--ink4);">Contacting Shippo API…</span>';
+  fetch('/api/create-shipment', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({order_id: orderId, weight_kg: 0.5})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      el.innerHTML = '<div style="background:#f0fdf4;border-radius:8px;padding:8px 10px;margin-top:4px;font-size:.78rem;">' +
+        '<div style="font-weight:700;color:#166534;margin-bottom:4px;">✅ Shipment booked!</div>' +
+        '<div>Tracking: <strong style="font-family:monospace;">' + d.tracking_number + '</strong></div>' +
+        (d.label_url ? '<div style="margin-top:6px;"><a href="' + d.label_url + '" target="_blank" style="color:var(--primary);font-weight:700;">📄 Download Label</a></div>' : '') +
+        '</div>';
+      setTimeout(() => location.reload(), 2500);
+    } else {
+      el.innerHTML = '<div style="background:#fef2f2;border-radius:8px;padding:8px;font-size:.76rem;color:#991b1b;">' +
+        '❌ ' + (d.error || d.message || 'Booking failed') + '</div>';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-lightning-fill"></i> Book via Shippo';
+    }
+  })
+  .catch(() => {
+    el.innerHTML = '<span style="color:#dc3545;">❌ Network error</span>';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning-fill"></i> Book via Shippo';
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "admin_base.html" %}
+{% block title %}Orders — AgriFortress Admin{% endblock %}
+{% block page_title %}Orders{% endblock %}
+
+{% block content %}
+<style>
+  .status-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+  .stab{padding:5px 14px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;border:1.5px solid transparent;transition:.15s;}
+  .stab:hover{text-decoration:none;}
+  .stab-all{background:#f0f4ff;color:#3b4fc2;border-color:#c7d0ff;}
+  .stab-all.active{background:#3b4fc2;color:white;}
+  .stab-Pending{background:#fff3cd;color:#856404;border-color:#ffc107;}
+  .stab-Pending.active{background:#ffc107;color:#1a1a00;}
+  .stab-Confirmed{background:#cfe2ff;color:#084298;border-color:#84b0ff;}
+  .stab-Confirmed.active{background:#0d6efd;color:white;}
+  .stab-Processing{background:#e2e3e5;color:#41464b;border-color:#bbb;}
+  .stab-Processing.active{background:#6c757d;color:white;}
+  .stab-Shipped{background:#d1ecf1;color:#0c5460;border-color:#aad8e0;}
+  .stab-Shipped.active{background:#0dcaf0;color:#000;}
+  .stab-Delivered{background:#d1fae5;color:#065f46;border-color:#6ee7b7;}
+  .stab-Delivered.active{background:#198754;color:white;}
+  .stab-Cancelled{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+  .stab-Cancelled.active{background:#dc3545;color:white;}
+  .order-row td{vertical-align:middle;}
+  .sp-pill{display:inline-block;padding:2px 10px;border-radius:100px;font-size:.72rem;font-weight:700;}
+  .sp-Pending{background:#fff3cd;color:#856404;}
+  .sp-Confirmed{background:#cfe2ff;color:#084298;}
+  .sp-Processing{background:#e2e3e5;color:#41464b;}
+  .sp-Shipped{background:#d1ecf1;color:#0c5460;}
+  .sp-Delivered{background:#d1fae5;color:#065f46;}
+  .sp-Cancelled{background:#fee2e2;color:#991b1b;}
+  .pay-Paid{color:#198754;font-weight:700;}
+  .pay-Unpaid{color:#dc3545;font-weight:700;}
+</style>
+
+<!-- Stat strip -->
+<div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;">
+  <div class="stat-card sc-g">
+    <div class="stat-ico">📋</div>
+    <div><div class="stat-n">{{ status_counts.Pending }}</div><div class="stat-lbl">Pending</div></div>
+  </div>
+  <div class="stat-card sc-b">
+    <div class="stat-ico">🚚</div>
+    <div><div class="stat-n">{{ status_counts.Shipped }}</div><div class="stat-lbl">Shipped</div></div>
+  </div>
+  <div class="stat-card sc-a">
+    <div class="stat-ico">🎉</div>
+    <div><div class="stat-n">{{ status_counts.Delivered }}</div><div class="stat-lbl">Delivered</div></div>
+  </div>
+</div>
+
+<!-- Status tabs -->
+<div class="status-tabs">
+  <a href="{{ url_for('admin_orders') }}" class="stab stab-all {% if not status %}active{% endif %}">
+    All ({{ status_counts.values()|sum }})
+  </a>
+  {% for s in ['Pending','Confirmed','Processing','Shipped','Delivered','Cancelled'] %}
+  <a href="{{ url_for('admin_orders', status=s) }}"
+     class="stab stab-{{ s }} {% if status == s %}active{% endif %}">
+    {{ s }} ({{ status_counts[s] }})
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Search -->
+<div class="ag-card" style="margin-bottom:14px;">
+  <form method="GET" style="display:flex;gap:10px;align-items:center;">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <input name="search" class="form-control" placeholder="Search order #, customer, phone…"
+           value="{{ search }}" style="max-width:320px;">
+    <button class="btn-p" type="submit">Search</button>
+    {% if search %}<a href="{{ url_for('admin_orders', status=status) }}" class="btn-o">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="ag-card">
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Shipping</th>
+          <th>Payment</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders.items %}
+        <tr class="order-row">
+          <td><strong style="font-family:monospace;font-size:.88rem;">{{ order.order_number }}</strong></td>
+          <td>
+            <div style="font-weight:600;">{{ order.customer_name }}</div>
+            <div style="font-size:.75rem;color:var(--ink4);">{{ order.customer_phone }}</div>
+          </td>
+          <td style="text-align:center;">{{ order.item_count }}</td>
+          <td><strong>₱{{ "%.2f"|format(order.total_amount) }}</strong></td>
+          <td>
+            <div style="font-size:.8rem;">{{ order.shipping_method }}</div>
+            {% if order.tracking_number %}
+            <div style="font-size:.7rem;color:var(--ink4);font-family:monospace;">{{ order.tracking_number[:16] }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <div style="font-size:.8rem;">{{ order.payment_method }}</div>
+            <div class="pay-{{ order.payment_status }}" style="font-size:.72rem;">{{ order.payment_status }}</div>
+          </td>
+          <td><span class="sp-pill sp-{{ order.status }}">{{ order.status }}</span></td>
+          <td style="font-size:.75rem;color:var(--ink4);">{{ order.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <a href="{{ url_for('admin_order_detail', order_id=order.id) }}" class="btn-o sm">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink4);">No orders found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if orders.pages > 1 %}
+  <div style="display:flex;justify-content:center;gap:6px;padding:16px 0 0;">
+    {% for p in orders.iter_pages() %}
+      {% if p %}
+      <a href="{{ url_for('admin_orders', page=p, status=status, search=search) }}"
+         class="btn-o sm {% if p == orders.page %}btn-p{% endif %}">{{ p }}</a>
+      {% else %}
+      <span style="padding:4px 6px;color:var(--ink4);">…</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

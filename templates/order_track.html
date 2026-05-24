@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Track Order — AgriFortress{% endblock %}
+
+{% block extra_head %}
+<style>
+:root { --nav-h: 62px; }
+.track-page { background: #f4f6f3; min-height: calc(100vh - var(--nav-h)); padding: 0 0 80px; }
+
+/* Hero */
+.track-hero { background: linear-gradient(145deg, #052e16 0%, #14532d 40%, #15803d 100%); padding: 32px 0 28px; }
+.th-inner { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+.th-inner h1 { font-family: 'Fraunces', serif; font-size: 1.7rem; font-weight: 900; color: #fff; margin: 0 0 5px; letter-spacing: -.03em; }
+.th-inner p  { font-size: .875rem; color: rgba(255,255,255,.65); margin: 0; }
+.th-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); border-radius: 100px; padding: 4px 14px; font-size: .75rem; font-weight: 700; color: #fff; margin-top: 12px; }
+
+/* Body */
+.track-body { max-width: 680px; margin: 0 auto; padding: 24px 20px; }
+
+/* Search card */
+.search-card { background: #fff; border-radius: 16px; border: 1px solid #e9ecef; padding: 22px 24px; margin-bottom: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.search-form { display: flex; gap: 10px; }
+.search-form input { flex: 1; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: .9rem; color: #111; font-family: 'Plus Jakarta Sans', sans-serif; background: #f9fafb; transition: .18s; }
+.search-form input:focus { outline: none; border-color: #16a34a; background: #fff; box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+.search-form input::placeholder { color: #d1d5db; }
+.track-btn-search { padding: 12px 22px; background: #16a34a; color: #fff; border: none; border-radius: 10px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: .9rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: .18s; box-shadow: 0 2px 8px rgba(22,163,74,.3); }
+.track-btn-search:hover { background: #15803d; transform: translateY(-1px); }
+.jt-note { display: flex; align-items: center; gap: 7px; font-size: .76rem; color: #9ca3af; margin-top: 12px; }
+.jt-note a { color: #16a34a; font-weight: 700; text-decoration: none; }
+
+/* Alerts */
+.alert { padding: 13px 16px; border-radius: 10px; font-size: .875rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.alert-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+
+/* Result card */
+.result-card { background: #fff; border-radius: 16px; border: 1px solid #e9ecef; overflow: hidden; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.07); }
+.rc-header { background: linear-gradient(145deg, #052e16, #15803d); padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.rc-num  { font-family: monospace; font-size: 1rem; font-weight: 900; color: #fff; }
+.rc-date { font-size: .76rem; color: rgba(255,255,255,.6); margin-top: 3px; }
+.spill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 100px; font-size: .76rem; font-weight: 800; }
+.sp-Pending    { background: rgba(254,243,199,.3); color: #fef3c7; border: 1px solid rgba(254,243,199,.5); }
+.sp-Confirmed  { background: rgba(219,234,254,.3); color: #bfdbfe; border: 1px solid rgba(219,234,254,.5); }
+.sp-Processing { background: rgba(243,232,255,.3); color: #e9d5ff; border: 1px solid rgba(243,232,255,.5); }
+.sp-Shipped    { background: rgba(207,250,254,.3); color: #a5f3fc; border: 1px solid rgba(207,250,254,.5); }
+.sp-Delivered  { background: rgba(220,252,231,.3); color: #bbf7d0; border: 1px solid rgba(220,252,231,.5); }
+.sp-Cancelled  { background: rgba(254,226,226,.3); color: #fecaca; border: 1px solid rgba(254,226,226,.5); }
+.rc-body { padding: 20px 24px; }
+
+/* Stepper */
+.stepper { display: flex; align-items: flex-start; margin-bottom: 20px; }
+.step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+.step:not(:last-child)::after { content: ''; position: absolute; top: 18px; left: 50%; width: 100%; height: 3px; background: #e5e7eb; z-index: 0; }
+.step.done::after   { background: #16a34a; }
+.step.active::after { background: linear-gradient(90deg, #16a34a, #e5e7eb); }
+.step-circle { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #e5e7eb; background: #fff; display: flex; align-items: center; justify-content: center; font-size: .82rem; position: relative; z-index: 1; transition: .3s; }
+.step.done   .step-circle { background: #16a34a; border-color: #16a34a; color: #fff; }
+.step.active .step-circle { border-color: #16a34a; background: #fff; box-shadow: 0 0 0 5px rgba(22,163,74,.15); animation: pring 2s ease-in-out infinite; }
+@keyframes pring { 0%,100%{box-shadow:0 0 0 5px rgba(22,163,74,.15)} 50%{box-shadow:0 0 0 9px rgba(22,163,74,.06)} }
+.step-inner { width: 12px; height: 12px; background: #16a34a; border-radius: 50%; animation: pdot 1.5s ease-in-out infinite; }
+@keyframes pdot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+.step-lbl  { font-size: .68rem; font-weight: 700; text-align: center; margin-top: 6px; color: #9ca3af; line-height: 1.3; text-transform: uppercase; letter-spacing: .04em; }
+.step.done .step-lbl, .step.active .step-lbl { color: #16a34a; }
+.step-date { font-size: .6rem; color: #9ca3af; text-align: center; margin-top: 1px; min-height: 12px; }
+.step.done .step-date { color: #16a34a; }
+
+/* Detail rows */
+.drow { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: .875rem; }
+.drow:last-child { border: none; }
+.dl { color: #6b7280; }
+.dv { font-weight: 700; color: #111; }
+
+/* J&T result card */
+.jt-result-card { background: #fff; border-radius: 16px; border: 1px solid #e9ecef; overflow: hidden; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.07); }
+.jt-header { background: linear-gradient(135deg, #e8342f, #c0251f); padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.jt-header h3 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 900; color: #fff; margin: 0; }
+.jt-badge { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); border-radius: 100px; padding: 3px 10px; font-size: .74rem; font-weight: 700; color: #fff; }
+.jt-body { padding: 20px 22px; }
+.jt-status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 13px 16px; background: #fef2f2; border-radius: 10px; border: 1px solid #fecaca; }
+.jt-status-icon { font-size: 1.8rem; flex-shrink: 0; }
+.jt-status-text strong { display: block; font-size: .9rem; font-weight: 800; color: #111; }
+.jt-status-text span   { font-size: .78rem; color: #6b7280; }
+
+/* Checkpoints */
+.cp-list { display: flex; flex-direction: column; gap: 0; }
+.cp-item { display: flex; gap: 12px; position: relative; padding-bottom: 14px; }
+.cp-item:not(:last-child)::before { content: ''; position: absolute; left: 12px; top: 26px; width: 2px; bottom: 0; background: #f3f4f6; }
+.cp-dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72rem; flex-shrink: 0; z-index: 1; position: relative; }
+.cp-dot.latest { background: #e8342f; color: #fff; box-shadow: 0 0 0 4px rgba(232,52,47,.12); }
+.cp-dot.past   { background: #fef9f9; color: #e8342f; border: 1.5px solid #fecaca; }
+.cp-event { font-size: .84rem; font-weight: 700; color: #111; }
+.cp-loc   { font-size: .74rem; color: #6b7280; margin-top: 1px; }
+.cp-time  { font-size: .7rem; color: #9ca3af; margin-top: 3px; }
+
+/* Manual fallback */
+.manual-card { background: #fff; border-radius: 16px; border: 1px solid #e9ecef; padding: 28px 24px; text-align: center; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.manual-card h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #111; margin: 0 0 8px; }
+.manual-card p  { font-size: .875rem; color: #6b7280; margin: 0 0 18px; }
+.btn-jt-track { display: inline-flex; align-items: center; gap: 8px; background: #e8342f; color: #fff; border-radius: 10px; padding: 11px 22px; font-weight: 800; font-size: .875rem; text-decoration: none; transition: .15s; }
+.btn-jt-track:hover { background: #c0251f; color: #fff; transform: translateY(-1px); }
+
+/* Support bar */
+.support-bar { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.support-bar p { font-size: .875rem; color: #14532d; margin: 0; font-weight: 600; }
+.btn-support { display: inline-block; background: #16a34a; color: #fff; border-radius: 9px; padding: 9px 18px; font-weight: 700; font-size: .84rem; text-decoration: none; }
+.api-source-chip { display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; color: #166534; border-radius: 100px; padding: 2px 8px; font-size: .7rem; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="track-page">
+
+  <div class="track-hero">
+    <div class="th-inner">
+      <h1>Track Your Order</h1>
+      <p>Enter your order number or J&T Express tracking number</p>
+      <div class="th-badge"><i class="bi bi-truck-front-fill"></i> J&T Express PH · MSC · LBC Supported</div>
+    </div>
+  </div>
+
+  <div class="track-body">
+
+    <div class="search-card">
+      <form method="POST" class="search-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="tracking_no" type="text" required autocomplete="off"
+               value="{{ tracking_no }}"
+               placeholder="e.g. AF2604001234 or J&T tracking number…">
+        <button class="track-btn-search" type="submit">
+          <i class="bi bi-search"></i> Track
+        </button>
+      </form>
+      <div class="jt-note">
+        <i class="bi bi-info-circle"></i>
+        Powered by TrackingMore API · Direct fallback to
+        <a href="https://www.jtexpress.ph/track-and-trace" target="_blank" rel="noopener">jtexpress.ph</a>
+      </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warn"><i class="bi bi-exclamation-triangle-fill"></i> {{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+
+      {# ── Internal DB order (our own order system) ──────────────────────────── #}
+      {% if result.source == 'internal' %}
+      {% set order = result.order %}
+      <div class="result-card">
+        <div class="rc-header">
+          <div>
+            <div class="rc-num">{{ order.order_number }}</div>
+            <div class="rc-date">Placed {{ order.created_at.strftime('%B %d, %Y') }}</div>
+          </div>
+          <span class="spill sp-{{ order.status }}">
+            {% if order.status=='Pending' %}⏳{% elif order.status=='Confirmed' %}✅{% elif order.status=='Processing' %}⚙️{% elif order.status=='Shipped' %}🚚{% elif order.status=='Delivered' %}🎉{% elif order.status=='Cancelled' %}❌{% endif %}
+            {{ order.status }}
+          </span>
+        </div>
+        <div class="rc-body">
+          {# Stepper #}
+          {% set steps=[('Pending','📋','Placed'),('Confirmed','✅','Confirmed'),('Processing','⚙️','Preparing'),('Shipped','🚚','Shipped'),('Delivered','🎉','Delivered')] %}
+          {% set snames=['Pending','Confirmed','Processing','Shipped','Delivered'] %}
+          {% set cur=snames.index(order.status) if order.status in snames else 0 %}
+          {% set emap={} %}{% for ev in order.events %}{% if ev.status not in emap %}{% set _=emap.update({ev.status:ev.created_at}) %}{% endif %}{% endfor %}
+          <div class="stepper" style="margin-bottom:20px;">
+            {% for st,ico,lbl in steps %}{% set i=loop.index0 %}
+            <div class="step {% if i<cur %}done{% elif i==cur %}active{% endif %}">
+              <div class="step-circle">{% if i<cur %}✓{% elif i==cur %}<div class="step-inner"></div>{% else %}{{ ico }}{% endif %}</div>
+              <div class="step-lbl">{{ lbl }}</div>
+              <div class="step-date">{% if emap.get(st) %}{{ emap[st].strftime('%b %d') }}{% endif %}</div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="drow"><span class="dl">Shipping via</span><span class="dv">{{ order.shipping_method }}</span></div>
+          {% if order.tracking_number %}
+          <div class="drow"><span class="dl">Courier Tracking #</span><span class="dv" style="font-family:monospace;">{{ order.tracking_number }}</span></div>
+          {% endif %}
+          <div class="drow"><span class="dl">Payment</span><span class="dv">{{ order.payment_method }} · {{ order.payment_status }}</span></div>
+          <div class="drow"><span class="dl">Total</span><span class="dv">₱{{ "%.2f"|format(order.total_amount) }}</span></div>
+          {% if order.tracking_number %}
+          <div style="margin-top:12px;">
+            <a href="https://www.jtexpress.ph/track-and-trace?query={{ order.tracking_number }}"
+               target="_blank" rel="noopener" class="btn-jt-track">
+              <i class="bi bi-truck-front-fill"></i> Track on J&T Express PH
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── J&T API result (TrackingMore or J&T direct) ─────────────────────── #}
+      {% elif result.source == 'jt_api' %}
+      {% set td = result.data %}
+      <div class="jt-result-card">
+        <div class="jt-header">
+          <h3><i class="bi bi-truck-front-fill"></i> {{ td.carrier }}</h3>
+          <span class="jt-badge">
+            {% if result.api_source == 'trackingmore' %}
+              <i class="bi bi-check-circle-fill"></i> TrackingMore API
+            {% else %}
+              <i class="bi bi-lightning-fill"></i> J&T Direct
+            {% endif %}
+          </span>
+        </div>
+        <div class="jt-body">
+          <div class="jt-status-row">
+            <span class="jt-status-icon">
+              {% if 'deliver' in td.status|lower %}🎉{% elif 'transit' in td.status|lower %}🚚{% elif 'pickup' in td.status|lower or 'collect' in td.status|lower %}📦{% else %}📋{% endif %}
+            </span>
+            <div class="jt-status-text">
+              <strong>{{ td.status }}</strong>
+              <span>Tracking: {{ td.tracking_number }}</span>
+              {% if td.estimated_delivery %}
+              <span style="display:block;color:#166534;font-weight:600;">Est. Delivery: {{ td.estimated_delivery }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if td.latest %}
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.84rem;color:#166534;">
+            <i class="bi bi-clock-fill"></i> <strong>Latest:</strong> {{ td.latest }}
+          </div>
+          {% endif %}
+          {% if td.checkpoints %}
+          <div style="font-size:.74rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Tracking History</div>
+          <div class="cp-list">
+            {% for cp in td.checkpoints %}
+            <div class="cp-item">
+              <div class="cp-dot {% if loop.first %}latest{% else %}past{% endif %}">
+                {% if loop.first %}<i class="bi bi-geo-alt-fill"></i>{% else %}•{% endif %}
+              </div>
+              <div class="cp-content">
+                <div class="cp-event">
+                  {% if cp is mapping %}
+                    {{ cp.get('tracking_detail','') or cp.get('StatusDesc','') or cp.get('process','') or cp.get('status','') or '—' }}
+                  {% else %}
+                    {{ cp }}
+                  {% endif %}
+                </div>
+                {% if cp is mapping and (cp.get('location','') or cp.get('city','')) %}
+                <div class="cp-loc"><i class="bi bi-geo-alt"></i> {{ cp.get('location','') or cp.get('city','') }}</div>
+                {% endif %}
+                {% if cp is mapping and (cp.get('checkpoint_time','') or cp.get('date','')) %}
+                <div class="cp-time">{{ cp.get('checkpoint_time','') or (cp.get('date','') ~ ' ' ~ cp.get('time','')) }}</div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <a href="https://www.jtexpress.ph/track-and-trace?query={{ td.tracking_number }}"
+               target="_blank" rel="noopener" class="btn-jt-track">
+              <i class="bi bi-box-arrow-up-right"></i> View on J&T Express PH
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {# ── Manual fallback — direct J&T link ───────────────────────────────── #}
+      {% elif result.source == 'manual' %}
+      <div class="manual-card">
+        <div style="font-size:2.5rem;margin-bottom:10px;">📦</div>
+        <h3>Track on J&T Express PH</h3>
+        <p>We'll redirect you directly to J&T's official tracking page for tracking number <strong>{{ result.tracking_no }}</strong>.</p>
+        <a href="{{ result.manual_url }}" target="_blank" rel="noopener" class="btn-jt-track">
+          <i class="bi bi-truck-front-fill"></i> Open J&T Express Tracker
+        </a>
+      </div>
+
+      {% endif %}
+
+    {% endif %}
+
+    <div class="support-bar">
+      <p><i class="bi bi-headset"></i> Can't find your order? We'll help.</p>
+      <a href="{{ url_for('index') }}#contact" class="btn-support">Contact Support</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

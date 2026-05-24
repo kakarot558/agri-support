@@ -1,0 +1,388 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if campaign %}Edit{% else %}New{% endif %} Campaign — AgriFortress{% endblock %}
+{% block page_title %}{% if campaign %}Edit{% else %}New{% endif %} Campaign{% endblock %}
+
+{% block extra_css %}
+<style>
+.tone-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.tone-btn {
+  border:2px solid var(--bdr2); border-radius:10px; padding:10px 12px;
+  background:var(--surf2); cursor:pointer; transition:.15s;
+  font-size:.78rem; font-weight:600; color:var(--ink2); text-align:left;
+}
+.tone-btn:hover { border-color:var(--grn); background:var(--grn-l); }
+.tone-btn.selected { border-color:var(--grn); background:var(--grn-l); color:var(--grn); }
+.tone-btn .tone-icon { font-size:1.2rem; display:block; margin-bottom:4px; }
+.caption-mode-tabs { display:flex; gap:4px; margin-bottom:14px; }
+.cap-tab {
+  flex:1; padding:10px 14px; border:2px solid var(--bdr2); border-radius:9px;
+  font-size:.82rem; font-weight:700; cursor:pointer; background:var(--surf2);
+  color:var(--ink3); transition:.15s; text-align:center;
+}
+.cap-tab.active { border-color:var(--grn); background:var(--grn-l); color:var(--grn); }
+.preview-caption {
+  background:var(--surf); border:1.5px solid var(--bdr2); border-radius:10px;
+  padding:14px 16px; font-size:.82rem; color:var(--ink2); line-height:1.7;
+  white-space:pre-wrap; min-height:130px; font-family:inherit;
+}
+.caption-textarea {
+  width:100%; border:2px solid var(--bdr2); border-radius:10px;
+  padding:14px 16px; font-size:.82rem; color:var(--ink);
+  background:var(--surf); resize:vertical; min-height:180px;
+  font-family:inherit; line-height:1.7; transition:.15s;
+}
+.caption-textarea:focus {
+  outline:none; border-color:var(--grn);
+  box-shadow:0 0 0 3px rgba(22,163,74,.1);
+}
+.duration-bar {
+  display:flex; align-items:center; gap:12px; padding:14px 18px;
+  background:linear-gradient(135deg,var(--grn-l),#f0fdf4);
+  border:1.5px solid var(--grn-m); border-radius:10px;
+}
+.dur-block { text-align:center; }
+.dur-num { font-size:1.8rem; font-weight:800; color:var(--grn); line-height:1; }
+.dur-lbl { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--grn); opacity:.7; }
+.dur-sep { font-size:1.4rem; font-weight:800; color:var(--grn); opacity:.4; padding-bottom:12px; }
+.cap-section-box {
+  background:var(--surf2); border:1.5px solid var(--bdr2);
+  border-radius:12px; padding:18px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:740px;">
+  <div class="ag-card">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-megaphone-fill"></i>
+        {% if campaign %}Edit Campaign{% else %}Create Campaign{% endif %}
+      </h6>
+      <a href="{{ url_for('admin_campaigns') }}" class="btn-o sm">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+    </div>
+    <div class="ag-card-body">
+      <form method="POST" id="campForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="custom_caption" id="customCaptionHidden" value="">
+        <input type="hidden" name="caption_mode" id="captionModeHidden" value="auto">
+
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="ag-label">Campaign Name <span class="req">*</span></label>
+            <input type="text" name="name" id="campName" class="form-control" required
+                   placeholder="e.g. Planting Season Kickoff 2025"
+                   value="{{ campaign.name if campaign else '' }}"
+                   oninput="refreshPreview()">
+          </div>
+
+          <div class="col-md-6">
+            <label class="ag-label">Campaign Type</label>
+            <select name="type" class="form-select" id="campType" onchange="refreshPreview()">
+              {% set ctypes = [('Planting Season','🌱'),('Harvest Sale','🌾'),('Flash Sale','⚡'),('Fertilizer Month','🧪'),('Equipment Clearance','🚜')] %}
+              {% for t, ico in ctypes %}
+              <option value="{{ t }}" {% if campaign and campaign.type == t %}selected{% endif %}>{{ ico }} {{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="ag-label">Discount % <span class="req">*</span></label>
+            <div class="input-group">
+              <input type="number" name="discount_percentage" class="form-control" id="discPct"
+                     min="1" max="100" required placeholder="15"
+                     value="{{ campaign.discount_percentage|int if campaign else '' }}"
+                     oninput="updateDuration(); refreshPreview()">
+              <span class="input-group-text" style="font-weight:800;color:var(--red);">% OFF</span>
+            </div>
+          </div>
+
+          <!-- Date Range -->
+          <div class="col-md-6">
+            <label class="ag-label">Start Date &amp; Time <span class="req">*</span></label>
+            <input type="datetime-local" name="start_date" class="form-control" id="startDate" required
+                   value="{{ campaign.start_date.strftime('%Y-%m-%dT%H:%M') if campaign else '' }}"
+                   onchange="updateDuration()">
+          </div>
+
+          <div class="col-md-6">
+            <label class="ag-label">End Date &amp; Time <span class="req">*</span></label>
+            <input type="datetime-local" name="end_date" class="form-control" id="endDate" required
+                   value="{{ campaign.end_date.strftime('%Y-%m-%dT%H:%M') if campaign else '' }}"
+                   onchange="updateDuration()">
+          </div>
+
+          <!-- ── Duration Display ───────────────────────── -->
+          <div class="col-12" id="durationWrap" style="display:none;">
+            <div class="duration-bar">
+              <i class="bi bi-clock-history" style="font-size:1.5rem;color:var(--grn);"></i>
+              <div style="flex:1;">
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--grn);opacity:.8;margin-bottom:6px;">
+                  Discount Duration
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:6px;">
+                  <div class="dur-block">
+                    <div class="dur-num" id="durDays">0</div>
+                    <div class="dur-lbl">days</div>
+                  </div>
+                  <div class="dur-sep">:</div>
+                  <div class="dur-block">
+                    <div class="dur-num" id="durHours">0</div>
+                    <div class="dur-lbl">hours</div>
+                  </div>
+                  <div class="dur-sep">:</div>
+                  <div class="dur-block">
+                    <div class="dur-num" id="durMins">0</div>
+                    <div class="dur-lbl">mins</div>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:.72rem;color:var(--grn);font-weight:700;" id="durLabel">—</div>
+                <div style="font-size:.68rem;color:var(--ink3);margin-top:2px;" id="durRange">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target -->
+          <div class="col-md-6">
+            <label class="ag-label">Target Category</label>
+            <select name="category_target" class="form-select" id="campCat" onchange="refreshPreview()">
+              <option value="">All Categories</option>
+              {% for cat in ['Seeds','Fertilizer','Tools','Equipment'] %}
+              <option value="{{ cat }}" {% if campaign and campaign.category_target == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="ag-label">Target Crop (optional)</label>
+            <input type="text" name="crop_target" class="form-control" id="campCrop"
+                   placeholder="e.g. Rice, Corn"
+                   value="{{ campaign.crop_target if campaign else '' }}"
+                   oninput="refreshPreview()">
+          </div>
+
+          <!-- Auto-Post -->
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="auto_post"
+                     id="autoPost" {% if not campaign or campaign.auto_post %}checked{% endif %}>
+              <label class="form-check-label" for="autoPost"
+                     style="font-size:.875rem;font-weight:600;color:var(--ink2);">
+                <i class="bi bi-facebook text-primary"></i>
+                Auto-post to Facebook when activated
+              </label>
+            </div>
+          </div>
+
+          <!-- ── CAPTION SECTION ───────────────────────── -->
+          <div class="col-12">
+            <div class="cap-section-box">
+              <div style="font-weight:700;font-size:.9rem;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                <i class="bi bi-chat-square-text" style="color:var(--grn);"></i>
+                Facebook Post Caption
+              </div>
+
+              <div class="caption-mode-tabs">
+                <button type="button" class="cap-tab active" onclick="setCapMode('auto')" id="tabAuto">
+                  <i class="bi bi-magic"></i> Auto-Generate
+                </button>
+                <button type="button" class="cap-tab" onclick="setCapMode('manual')" id="tabManual">
+                  <i class="bi bi-pencil-square"></i> Write My Own
+                </button>
+              </div>
+
+              <!-- Auto -->
+              <div id="autoModePanel">
+                <label class="ag-label" style="margin-bottom:8px;">Caption Tone / Style</label>
+                <div class="tone-grid" id="toneGrid">
+                  <button type="button" class="tone-btn selected" data-tone="friendly" onclick="selectTone(this)">
+                    <span class="tone-icon">🤝</span>Friendly
+                  </button>
+                  <button type="button" class="tone-btn" data-tone="urgent" onclick="selectTone(this)">
+                    <span class="tone-icon">🚨</span>Urgent
+                  </button>
+                  <button type="button" class="tone-btn" data-tone="professional" onclick="selectTone(this)">
+                    <span class="tone-icon">💼</span>Professional
+                  </button>
+                  <button type="button" class="tone-btn" data-tone="seasonal" onclick="selectTone(this)">
+                    <span class="tone-icon">🌱</span>Seasonal
+                  </button>
+                  <button type="button" class="tone-btn" data-tone="lowstock" onclick="selectTone(this)">
+                    <span class="tone-icon">⚠️</span>Low Stock
+                  </button>
+                </div>
+                <input type="hidden" name="post_tone" id="postTone" value="friendly">
+
+                <div style="margin-top:14px;">
+                  <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <i class="bi bi-eye" style="font-size:.8rem;"></i> Live Preview
+                  </div>
+                  <div class="preview-caption" id="captionPreview">Fill in the campaign details above to see a live preview…</div>
+                </div>
+              </div>
+
+              <!-- Manual -->
+              <div id="manualModePanel" style="display:none;">
+                <label class="ag-label" style="margin-bottom:6px;">
+                  Your Custom Caption
+                  <span style="font-weight:400;font-size:.75rem;color:var(--ink4);">(posted exactly as written)</span>
+                </label>
+                <textarea class="caption-textarea" id="manualCaption"
+                          placeholder="Write your Facebook post here...
+
+Example:
+🌾 BIG SALE at AgriFortress Supply Co.!
+
+📣 Get our premium seeds at 15% OFF!
+⏰ Limited time offer only!
+
+Message us to order.
+#AgriFortress #FarmLife"></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:.72rem;color:var(--ink4);" id="charCount">0 characters</span>
+                  <button type="button" class="btn-o sm" onclick="fillManualFromAuto()" style="font-size:.72rem;">
+                    <i class="bi bi-magic"></i> Fill from Auto-Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 d-flex gap-2 pt-1">
+            <button type="submit" class="btn-p">
+              <i class="bi bi-check-lg"></i>
+              {% if campaign %}Update Campaign{% else %}Create Campaign{% endif %}
+            </button>
+            <a href="{{ url_for('admin_campaigns') }}" class="btn-o">Cancel</a>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+var captionMode = 'auto';
+var selectedTone = 'friendly';
+
+// ── Duration ──────────────────────────────────────────────
+function updateDuration() {
+  var s = document.getElementById('startDate').value;
+  var e = document.getElementById('endDate').value;
+  var wrap = document.getElementById('durationWrap');
+  if (!s || !e) { wrap.style.display='none'; return; }
+  var ms = new Date(e) - new Date(s);
+  if (ms <= 0) { wrap.style.display='none'; return; }
+  var days  = Math.floor(ms / 86400000);
+  var hours = Math.floor((ms % 86400000) / 3600000);
+  var mins  = Math.floor((ms % 3600000) / 60000);
+  wrap.style.display='flex';
+  document.getElementById('durDays').textContent  = days;
+  document.getElementById('durHours').textContent = hours;
+  document.getElementById('durMins').textContent  = mins;
+  var parts = [];
+  if (days)  parts.push(days + 'd');
+  if (hours) parts.push(hours + 'h');
+  if (mins)  parts.push(mins + 'm');
+  document.getElementById('durLabel').textContent = parts.join(' ') + ' total duration';
+  var fmt = function(dt) {
+    return new Date(dt).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+  };
+  document.getElementById('durRange').textContent = fmt(s) + ' → ' + fmt(e);
+  refreshPreview();
+}
+
+// ── Caption Templates ──────────────────────────────────────
+var TPLS = {
+  friendly: function(d) {
+    return '🌾 Hello, Mahal na Magsasaka! 🌾\n\nGreat news! '+(d.cat||'Products')+' are now on SALE!\n💚 '+d.disc+'% OFF this '+d.type+'!\n\n'
+      +(d.crop?'✅ Perfect for '+d.crop+'\n':'')+
+      (d.dur?'⏰ Limited time: '+d.dur+'\n':'')+
+      '\nInvest in quality for a better harvest! 🌱\n#FarmLife #AgriBusiness #AgriFortress';
+  },
+  urgent: function(d) {
+    return '🚨 LIMITED TIME OFFER! 🚨\n\n⏰ Don\'t miss out!\n'+(d.cat||'Products')+' — NOW '+d.disc+'% OFF!\n\n'
+      +(d.crop?'🌾 For: '+d.crop+'\n':'')+(d.dur?'⏳ Offer valid for: '+d.dur+'\n':'')+
+      '\n📞 Order NOW before it\'s gone!\n#LimitedStock #AgriFortress';
+  },
+  professional: function(d) {
+    return '📣 SPECIAL ANNOUNCEMENT\n\n'+d.name+'\nType: '+d.type+'\n'
+      +(d.cat?'Category: '+d.cat+'\n':'')+(d.crop?'Crop: '+d.crop+'\n':'')+
+      '\n💰 '+d.disc+'% SPECIAL DISCOUNT\n'+(d.dur?'Valid for: '+d.dur+'\n':'')+
+      '\nFor bulk orders, contact us directly.\n#AgriSupply #AgriFortress #Philippines';
+  },
+  seasonal: function(d) {
+    return '🌱 '+d.type.toUpperCase()+' SALE IS HERE! 🌱\n\nPrepare your farm!\n'
+      +(d.cat?'✨ '+d.cat+' — ON SALE!\n':'')+'💯 '+d.disc+'% DISCOUNT!\n'
+      +(d.crop?'🌾 Best for: '+d.crop+'\n':'')+(d.dur?'📅 Limited offer: '+d.dur+'\n':'')+
+      '\nMake this season your most productive yet!\n#PlantingSeason #AgriFortress';
+  },
+  lowstock: function(d) {
+    return '⚠️ ALMOST GONE! Last Few Stocks! ⚠️\n\n'+(d.cat||'Products')+' are selling FAST!\n🔥 NOW '+d.disc+'% OFF!\n'
+      +(d.dur?'⏰ Offer ends soon: '+d.dur+'\n':'')+
+      '\nOrder now at AgriFortress Supply Co.\n📍 Message us today!\n#LowStock #LastChance #AgriFortress';
+  }
+};
+
+function refreshPreview() {
+  var name = document.getElementById('campName').value || 'Campaign';
+  var disc = document.getElementById('discPct').value || '??';
+  var type = document.getElementById('campType').value || 'Sale';
+  var cat  = document.getElementById('campCat').value;
+  var crop = document.getElementById('campCrop').value;
+  var dur  = '';
+  var dEl  = document.getElementById('durLabel');
+  if (dEl && document.getElementById('durationWrap').style.display!=='none') {
+    dur = dEl.textContent.replace(' total duration','');
+  }
+  var fn = TPLS[selectedTone] || TPLS.friendly;
+  document.getElementById('captionPreview').textContent = fn({name,disc,type,cat,crop,dur});
+}
+
+function setCapMode(mode) {
+  captionMode = mode;
+  document.getElementById('captionModeHidden').value = mode;
+  document.getElementById('tabAuto').classList.toggle('active', mode==='auto');
+  document.getElementById('tabManual').classList.toggle('active', mode==='manual');
+  document.getElementById('autoModePanel').style.display   = mode==='auto'   ? 'block':'none';
+  document.getElementById('manualModePanel').style.display = mode==='manual' ? 'block':'none';
+}
+
+function selectTone(btn) {
+  document.querySelectorAll('.tone-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedTone = btn.dataset.tone;
+  document.getElementById('postTone').value = selectedTone;
+  refreshPreview();
+}
+
+function fillManualFromAuto() {
+  document.getElementById('manualCaption').value = document.getElementById('captionPreview').textContent;
+  updateCharCount();
+}
+
+function updateCharCount() {
+  var l = document.getElementById('manualCaption').value.length;
+  document.getElementById('charCount').textContent = l + ' characters' + (l>2200?' ⚠️ very long':'');
+}
+
+document.getElementById('campForm').addEventListener('submit', function() {
+  if (captionMode==='manual') {
+    document.getElementById('customCaptionHidden').value = document.getElementById('manualCaption').value;
+  }
+});
+
+document.getElementById('manualCaption').addEventListener('input', updateCharCount);
+
+document.addEventListener('DOMContentLoaded', function() {
+  updateDuration();
+  refreshPreview();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — AgriFortress{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Design Tokens ─────────────────────────────────────────── */
+:root {
+  --ink:       #0d1f0f;
+  --ink-2:     #2e4030;
+  --ink-3:     #5a6e5c;
+  --ink-4:     #9aab9b;
+  --cream:     #faf7f0;
+  --cream-2:   #f2ede3;
+  --border:    #e2ddd4;
+  --grn:       #3D5A80;
+  --grn-lt:    #dce8f5;
+  --grn-glow:  rgba(61,90,128,.18);
+  --gold:      #16a34a;
+  --gold-lt:   #fde8e4;
+  --msn-blue:  #0084ff;
+  --radius:    16px;
+  --radius-lg: 24px;
+  --sh:        0 2px 8px rgba(0,0,0,.06), 0 8px 32px rgba(0,0,0,.07);
+  --sh-lg:     0 8px 40px rgba(0,0,0,.12);
+}
+
+
+/* ── Image Theft Protection ────────────────────────────────── */
+.detail-img-card img,
+.related-img-wrap img,
+.secure-img {
+  /* Prevent drag to desktop */
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  /* Prevent text/image selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+/* Overlay blocks right-click and drag on all image containers */
+.detail-img-card::after,
+.related-img-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: default;
+}
+/* Disable image saving via long-press on mobile */
+img {
+  -webkit-touch-callout: none;
+  touch-callout: none;
+}
+/* ── Page Layout ───────────────────────────────────────────── */
+.pd-wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+/* ── Breadcrumb ────────────────────────────────────────────── */
+.agri-breadcrumb {
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .03em;
+}
+.agri-breadcrumb .breadcrumb-item a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.agri-breadcrumb .breadcrumb-item a:hover { color: var(--grn); }
+.agri-breadcrumb .breadcrumb-item.active { color: var(--ink-2); }
+.agri-breadcrumb .breadcrumb-item + .breadcrumb-item::before { color: var(--border); }
+
+/* ── Image Column ──────────────────────────────────────────── */
+.detail-img-card {
+  position: relative;
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border);
+  box-shadow: var(--sh);
+}
+.detail-main-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .6s ease;
+}
+.detail-img-card:hover .detail-main-img { transform: scale(1.03); }
+.detail-no-img {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 5rem;
+  background: var(--cream-2);
+}
+.detail-discount-badge {
+  position: absolute; top: 16px; left: 16px; z-index: 2;
+  background: linear-gradient(135deg, #e53e3e, #c53030);
+  color: #fff; font-size: .7rem; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 100px;
+  box-shadow: 0 2px 10px rgba(229,62,62,.35);
+}
+.img-protect-overlay {
+  position: absolute; inset: 0;
+  background: transparent;
+  z-index: 1;
+}
+
+/* ── Info Column ───────────────────────────────────────────── */
+.detail-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge {
+  font-size: .68rem; font-weight: 700;
+  padding: 4px 10px; border-radius: 100px;
+  letter-spacing: .03em;
+}
+.cat-badge {
+  background: var(--grn-lt); color: var(--grn);
+  border: 1px solid #b0cfe0;
+}
+.crop-badge {
+  background: #fde8e4; color: #a83422;
+  border: 1px solid #f4826a;
+}
+.season-badge {
+  background: #dce8f5; color: #2d4460;
+  border: 1px solid #c0d0f8;
+}
+
+.detail-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+  margin: 14px 0 0;
+  letter-spacing: -.02em;
+}
+
+/* ── Price Block ───────────────────────────────────────────── */
+.detail-price-block {
+  margin: 16px 0;
+  padding: 16px 20px;
+  background: var(--cream);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.detail-price-main { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.detail-price-now {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 700;
+  color: var(--grn);
+  line-height: 1;
+}
+.detail-price-meta { display: flex; flex-direction: column; gap: 2px; }
+.detail-price-orig {
+  font-size: .82rem; color: var(--ink-4);
+  text-decoration: line-through;
+}
+.detail-price-save {
+  font-size: .72rem; font-weight: 700;
+  color: #c53030; background: #fee2e2;
+  padding: 2px 7px; border-radius: 100px;
+}
+
+/* ── Pack & Stock ──────────────────────────────────────────── */
+.detail-pack {
+  font-size: .83rem; color: var(--ink-3);
+  margin: 0 0 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.detail-stock-section { margin-bottom: 18px; }
+.stock-label { font-size: .78rem; font-weight: 700; color: var(--ink-3); }
+.stock-status {
+  font-size: .78rem; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 100px;
+}
+.in-stock { background: var(--grn-lt); color: var(--grn); border: 1px solid #b0cfe0; }
+.low-stock-status { background: #fff8e6; color: #b45309; border: 1px solid #fcd34d; }
+.out-stock { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+/* ── Content Sections ──────────────────────────────────────── */
+.detail-section { margin-bottom: 20px; }
+.detail-section-title {
+  font-size: .8rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.detail-desc {
+  font-size: .88rem; color: var(--ink-2);
+  line-height: 1.7; margin: 0;
+}
+.detail-instructions {
+  font-size: .85rem; color: var(--ink-2);
+  line-height: 1.7;
+  background: var(--cream); border-left: 3px solid var(--grn);
+  padding: 12px 16px; border-radius: 0 10px 10px 0;
+}
+.safety-box {
+  background: #fffbe6; border: 1px solid #fcd34d;
+  border-radius: 12px; padding: 14px 16px;
+  font-size: .83rem; color: #7a5a08;
+}
+.safety-box h6 {
+  font-size: .78rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: #92400e; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ── CTA Section ───────────────────────────────────────────── */
+.detail-cta-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+.btn-order-msn {
+  background: linear-gradient(135deg, #0084ff 0%, #0062cc 100%);
+  color: #fff; border: none; border-radius: 14px;
+  padding: 15px 24px; font-size: .92rem; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center;
+  gap: 10px; width: 100%; justify-content: center;
+  transition: transform .18s, box-shadow .18s;
+  box-shadow: 0 4px 18px rgba(0,132,255,.35);
+  letter-spacing: .01em;
+}
+.btn-order-msn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,132,255,.45);
+}
+.btn-order-msn:active { transform: translateY(0); }
+.btn-order-msn:disabled {
+  opacity: .45; cursor: not-allowed;
+  transform: none; box-shadow: none;
+}
+.btn-fb-contact {
+  background: var(--cream); color: var(--ink-2);
+  border: 1.5px solid var(--border); border-radius: 14px;
+  padding: 13px 24px; font-size: .88rem; font-weight: 600;
+  display: inline-flex; align-items: center;
+  gap: 8px; width: 100%; justify-content: center;
+  text-decoration: none; transition: .16s;
+}
+.btn-fb-contact:hover {
+  background: var(--cream-2); border-color: var(--ink-4);
+  color: var(--ink);
+}
+
+/* ── Trust Row ─────────────────────────────────────────────── */
+.trust-row {
+  display: flex; gap: 7px; flex-wrap: wrap; margin-top: 14px;
+}
+.trust-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .68rem; font-weight: 700; color: var(--ink-3);
+  background: var(--cream); border: 1px solid var(--border);
+  border-radius: 100px; padding: 4px 11px;
+  letter-spacing: .02em;
+}
+
+/* Low stock alert */
+.alert-warning {
+  background: #fffbe6; border: 1px solid #fcd34d;
+  color: #7a5a08; border-radius: 12px;
+  padding: 12px 16px; font-size: .83rem;
+}
+
+/* ── Related Products ──────────────────────────────────────── */
+.related-section { padding-top: 20px; }
+.related-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 24px;
+  letter-spacing: -.02em;
+}
+.related-card-link { text-decoration: none; }
+.related-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+  position: relative;
+}
+.related-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sh-lg);
+}
+.related-badge {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  background: #e53e3e; color: #fff;
+  font-size: .65rem; font-weight: 800;
+  padding: 3px 8px; border-radius: 100px;
+}
+.related-img-wrap {
+  height: 140px; overflow: hidden;
+  background: var(--cream-2);
+}
+.related-img-wrap img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .4s;
+}
+.related-card:hover .related-img-wrap img { transform: scale(1.06); }
+.related-no-img {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem;
+}
+.related-body { padding: 12px 14px; }
+.related-name {
+  font-size: .82rem; font-weight: 600; color: var(--ink);
+  margin: 0 0 5px; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.related-price { font-size: .82rem; color: var(--grn); font-weight: 700; margin: 0; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pd-img-col  { animation: fadeUp .5s ease both; }
+.pd-info-col { animation: fadeUp .5s .1s ease both; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pd-wrap">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb agri-breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('index', category=product.category) }}">{{ product.category }}</a></li>
+      <li class="breadcrumb-item active">{{ product.name[:40] }}{% if product.name|length > 40 %}...{% endif %}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-5">
+
+    <!-- ── Image Column ────────────────────────────────────── -->
+    <div class="col-lg-5 pd-img-col">
+      <div class="detail-img-card no-select" oncontextmenu="return false;">
+        {% if product.discount_percentage > 0 %}
+        <div class="detail-discount-badge">SAVE {{ product.discount_percentage|int }}%</div>
+        {% endif %}
+        {% if product.image_path %}
+        <img src="/api/placeholder/500/400"
+             data-product-id="{{ product.id }}"
+             class="detail-main-img secure-img no-drag"
+             alt="{{ product.name }}"
+             id="mainProductImage"
+             oncontextmenu="return false;"
+             draggable="false">
+        {% else %}
+        <div class="detail-no-img">
+          {% if product.category == 'Seeds' %}🌱
+          {% elif product.category == 'Fertilizer' %}🧪
+          {% elif product.category == 'Equipment' %}🚜
+          {% else %}🔧{% endif %}
+        </div>
+        {% endif %}
+        <div class="img-protect-overlay"></div>
+      </div>
+
+      {% if product.is_low_stock %}
+      <div class="alert alert-warning mt-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Low Stock!</strong> Only {{ product.stock_quantity }} units left.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Info Column ──────────────────────────────────────── -->
+    <div class="col-lg-7 pd-info-col">
+
+      <!-- Badges -->
+      <div class="detail-badges mb-3">
+        <span class="badge cat-badge">{{ product.category }}</span>
+        {% if product.crop_type %}
+        <span class="badge crop-badge">🌾 {{ product.crop_type }}</span>
+        {% endif %}
+        {% if product.season_applicable %}
+        <span class="badge season-badge">📅 {{ product.season_applicable }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Title -->
+      <h1 class="detail-title">{{ product.name }}</h1>
+
+      <!-- Price -->
+      <div class="detail-price-block mt-3">
+        {% if product.discount_percentage > 0 %}
+        <div class="detail-price-main">
+          <span class="detail-price-now">₱{{ "%.2f"|format(product.discounted_price) }}</span>
+          <div class="detail-price-meta">
+            <span class="detail-price-orig">₱{{ "%.2f"|format(product.original_price) }}</span>
+            <span class="detail-price-save">Save ₱{{ "%.2f"|format(product.original_price - product.discounted_price) }}</span>
+          </div>
+        </div>
+        {% else %}
+        <span class="detail-price-now">₱{{ "%.2f"|format(product.price) }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Packaging -->
+      {% if product.packaging_type %}
+      <p class="detail-pack mt-3">
+        <i class="bi bi-box-seam" style="color:var(--grn);"></i>
+        Packaging: <strong>{{ product.packaging_type }}</strong>
+      </p>
+      {% endif %}
+
+      <!-- Stock -->
+      <div class="detail-stock-section">
+        <div class="d-flex align-items-center gap-3">
+          <span class="stock-label">Availability:</span>
+          {% if product.stock_quantity > product.stock_threshold %}
+          <span class="stock-status in-stock">
+            <i class="bi bi-check-circle-fill"></i> In Stock ({{ product.stock_quantity }} pcs)
+          </span>
+          {% elif product.stock_quantity > 0 %}
+          <span class="stock-status low-stock-status">
+            <i class="bi bi-exclamation-circle-fill"></i> Low Stock ({{ product.stock_quantity }} pcs)
+          </span>
+          {% else %}
+          <span class="stock-status out-stock">
+            <i class="bi bi-x-circle-fill"></i> Out of Stock
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Description -->
+      {% if product.description %}
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-info-circle" style="color:var(--grn);"></i> Description
+        </div>
+        <p class="detail-desc">{{ product.description }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Application Instructions -->
+      {% if product.application_instructions %}
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-list-check" style="color:var(--grn);"></i> Application Instructions
+        </div>
+        <div class="detail-instructions">{{ product.application_instructions }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Safety Notes -->
+      {% if product.safety_notes %}
+      <div class="detail-section">
+        <div class="safety-box">
+          <h6><i class="bi bi-shield-exclamation"></i> Safety Notes</h6>
+          <p class="mb-0">{{ product.safety_notes }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── CTA ──────────────────────────────────────────── -->
+      <div class="detail-cta-section">
+        <div class="d-flex flex-column gap-2">
+          {% if product.stock_quantity > 0 %}
+          <a href="{{ url_for('place_order', product_id=product.id) }}" class="btn-order-msn" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;">
+              <path d="M7 4H17L19 8H5L7 4ZM3 9H21L20 20H4L3 9ZM10 13V17H14V13H10Z"/>
+            </svg>
+            Order Now
+          </a>
+          {% else %}
+          <button class="btn-order-msn" disabled>Out of Stock</button>
+          {% endif %}
+
+          <a href="{{ url_for('track_order') }}"
+             class="btn-fb-contact">
+            <i class="bi bi-truck"></i> Track My Order
+          </a>
+        </div>
+
+        <div class="trust-row">
+          <span class="trust-pill"><i class="bi bi-shield-check" style="color:var(--grn);"></i> Secure Order</span>
+          <span class="trust-pill"><i class="bi bi-truck" style="color:var(--grn);"></i> Fast Delivery</span>
+          <span class="trust-pill"><i class="bi bi-award" style="color:var(--grn);"></i> Authentic Products</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Related Products ──────────────────────────────────── -->
+  {% if related %}
+  <section class="related-section mt-5 pt-4 border-top" style="border-color:var(--border)!important;">
+    <h3 class="related-title">More in {{ product.category }}</h3>
+    <div class="row g-4">
+      {% for r in related %}
+      <div class="col-sm-6 col-md-3">
+        <a href="{{ url_for('product_detail', product_id=r.id) }}" class="related-card-link">
+          <div class="related-card">
+            {% if r.discount_percentage > 0 %}
+            <div class="related-badge">-{{ r.discount_percentage|int }}%</div>
+            {% endif %}
+            <div class="related-img-wrap no-select">
+              {% if r.image_path %}
+              <img src="/api/placeholder/200/150"
+                   data-product-id="{{ r.id }}"
+                   class="secure-img no-drag"
+                   alt="{{ r.name }}"
+                   oncontextmenu="return false;"
+                   draggable="false">
+              {% else %}
+              <div class="related-no-img">
+                {% if r.category == 'Seeds' %}🌱
+                {% elif r.category == 'Fertilizer' %}🧪
+                {% elif r.category == 'Equipment' %}🚜
+                {% else %}🔧{% endif %}
+              </div>
+              {% endif %}
+            </div>
+            <div class="related-body">
+              <p class="related-name">{{ r.name[:50] }}</p>
+              <p class="related-price">
+                {% if r.discount_percentage > 0 %}
+                <strong>₱{{ "%.2f"|format(r.discounted_price) }}</strong>
+                <del class="text-muted ms-1 small">₱{{ "%.2f"|format(r.original_price) }}</del>
+                {% else %}
+                <strong>₱{{ "%.2f"|format(r.price) }}</strong>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+
+<!-- ── ORDER MODAL ─────────────────────────────────────────── -->
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function loadSecureImage(imgEl) {
+  if (!imgEl) return;
+  fetch('/api/image-token/' + imgEl.dataset.productId)
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.url) imgEl.src = d.url; });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var mainImg = document.getElementById('mainProductImage');
+  loadSecureImage(mainImg);
+  if (mainImg) {
+    setInterval(function() { loadSecureImage(mainImg); }, 70000);
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && ['s','u','p'].includes(e.key.toLowerCase())) {
+      e.preventDefault(); return false;
+    }
+  });
+  document.addEventListener('keyup', function(e) {
+    if (e.key === 'PrintScreen') {
+      navigator.clipboard && navigator.clipboard.writeText('');
+    }
+  });
+});
+</script>
+{% endblock %}

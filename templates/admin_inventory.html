@@ -1,0 +1,139 @@
+{% extends "admin_base.html" %}
+{% block title %}Inventory — AgriFortress Admin{% endblock %}
+{% block page_title %}Inventory Management{% endblock %}
+
+{% block content %}
+<style>
+  .inv-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  @media(max-width:640px){.inv-stat-row{grid-template-columns:repeat(2,1fr);}}
+  .inv-stat{background:white;border-radius:14px;border:1.5px solid var(--brd);padding:16px;display:flex;align-items:center;gap:14px;}
+  .inv-stat-ico{font-size:1.8rem;flex-shrink:0;}
+  .inv-stat-n{font-size:1.4rem;font-weight:900;color:var(--ink);}
+  .inv-stat-lbl{font-size:.73rem;color:var(--ink4);}
+  .stock-bar-wrap{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-top:4px;}
+  .stock-bar-fill{height:100%;border-radius:3px;transition:width .5s;}
+  .adj-form{display:flex;gap:6px;align-items:center;}
+  .adj-form input[type=number]{width:70px;border:1.5px solid var(--brd);border-radius:7px;padding:5px 8px;font-size:.82rem;text-align:center;}
+  .adj-form select{border:1.5px solid var(--brd);border-radius:7px;padding:5px 8px;font-size:.8rem;}
+  .adj-form button{font-size:.78rem;padding:5px 12px;}
+  .low-row{background:#fffbeb;}
+  .out-row{background:#fff5f5;}
+  .stk-ok{color:var(--grn);font-weight:700;}
+  .stk-low{color:#b45309;font-weight:700;}
+  .stk-out{color:#dc2626;font-weight:700;}
+</style>
+
+<!-- Summary stats -->
+<div class="inv-stat-row">
+  <div class="inv-stat">
+    <div class="inv-stat-ico">📦</div>
+    <div>
+      <div class="inv-stat-n">{{ products|length }}</div>
+      <div class="inv-stat-lbl">Total Products</div>
+    </div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-ico">⚠️</div>
+    <div>
+      <div class="inv-stat-n" style="color:#b45309;">{{ low_stock_count }}</div>
+      <div class="inv-stat-lbl">Low Stock</div>
+    </div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-ico">❌</div>
+    <div>
+      <div class="inv-stat-n" style="color:#dc2626;">{{ products|selectattr('stock_quantity','eq',0)|list|length }}</div>
+      <div class="inv-stat-lbl">Out of Stock</div>
+    </div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-ico">💰</div>
+    <div>
+      <div class="inv-stat-n" style="font-size:1rem;">₱{{ "{:,.0f}".format(total_value) }}</div>
+      <div class="inv-stat-lbl">Inventory Value</div>
+    </div>
+  </div>
+</div>
+
+<!-- Product inventory table -->
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title">📊 Stock Levels</h6>
+    <div style="display:flex;gap:8px;">
+      <a href="{{ url_for('admin_products') }}" class="btn-o sm">Manage Products</a>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Current Stock</th>
+          <th>Threshold</th>
+          <th>Pending Orders</th>
+          <th>Total Sold</th>
+          <th>Stock Level</th>
+          <th>Adjust Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        {% set sold    = sold_map.get(p.id, 0) %}
+        {% set pending = pending_map.get(p.id, 0) %}
+        {% set pct = [(p.stock_quantity / (p.stock_threshold * 3) * 100)|int, 100]|min if p.stock_threshold > 0 else 100 %}
+        <tr class="{% if p.stock_quantity == 0 %}out-row{% elif p.is_low_stock %}low-row{% endif %}">
+          <td>
+            <div style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ p.name }}">
+              {{ p.name[:36] }}{% if p.name|length > 36 %}…{% endif %}
+            </div>
+            {% if not p.is_active %}<span style="font-size:.7rem;color:#dc3545;">(Inactive)</span>{% endif %}
+          </td>
+          <td>
+            <span class="cat-pill cp-{{ p.category|lower|replace(' ','-') }}">{{ p.category }}</span>
+          </td>
+          <td>
+            {% if p.stock_quantity == 0 %}
+              <span class="stk-out">0 — OUT</span>
+            {% elif p.is_low_stock %}
+              <span class="stk-low">{{ p.stock_quantity }} ⚠️</span>
+            {% else %}
+              <span class="stk-ok">{{ p.stock_quantity }}</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--ink4);font-size:.82rem;">{{ p.stock_threshold }}</td>
+          <td style="text-align:center;">
+            {% if pending > 0 %}
+            <span style="background:#fff3cd;color:#856404;border-radius:100px;padding:2px 8px;font-size:.75rem;font-weight:700;">{{ pending }}</span>
+            {% else %}
+            <span style="color:var(--ink4);font-size:.8rem;">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;color:var(--ink4);font-size:.82rem;">{{ sold }}</td>
+          <td style="min-width:100px;">
+            <div class="stock-bar-wrap">
+              <div class="stock-bar-fill"
+                   style="width:{{ pct }}%;background:{% if p.stock_quantity==0 %}#ef4444{% elif p.is_low_stock %}#f59e0b{% else %}var(--grn){% endif %};"></div>
+            </div>
+            <div style="font-size:.68rem;color:var(--ink4);margin-top:2px;">{{ pct }}%</div>
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('adjust_stock', product_id=p.id) }}" class="adj-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="action">
+                <option value="add">+Add</option>
+                <option value="set">Set</option>
+              </select>
+              <input type="number" name="amount" value="0" min="0" max="99999">
+              <button class="btn-o sm" type="submit">Apply</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--ink4);">No products found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

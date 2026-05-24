@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ code }} — AgriFortress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;}
+    body{
+      font-family:'DM Sans',system-ui,sans-serif;
+      min-height:100vh; margin:0;
+      background:#f0f4f0;
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .err-card{
+      background:#fff; border-radius:20px;
+      padding:52px 44px; text-align:center;
+      box-shadow: 0 8px 40px rgba(0,0,0,.1);
+      max-width:480px; width:100%;
+      border:1px solid #d0dde8;
+    }
+    .err-emoji{ font-size:4rem; margin-bottom:8px; }
+    .err-code{
+      font-family:'Playfair Display',serif;
+      font-size:5.5rem; font-weight:800;
+      color:#3D5A80; line-height:1; margin-bottom:6px;
+    }
+    .err-title{ font-size:1.3rem; font-weight:700; color:#0d200f; margin-bottom:8px; }
+    .err-detail{ color:#8aa48c; font-size:.9rem; margin-bottom:28px; }
+    .btn-group{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .btn-a{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:10px 20px; border-radius:9px; font-weight:700; font-size:.88rem;
+      text-decoration:none; transition:.14s;
+    }
+    .btn-primary{ background:#3D5A80; color:#fff; }
+    .btn-primary:hover{ background:#2d4460; color:#fff; }
+    .btn-outline{ background:transparent; color:#3D5A80; border:1.5px solid #d0dde8; }
+    .btn-outline:hover{ background:#dce8f5; border-color:#3D5A80; }
+  </style>
+</head>
+<body>
+  <div class="err-card">
+    <div class="err-emoji">
+      {% if code == 403 %}🔒{% elif code == 404 %}🌿{% elif code == 429 %}⏱️{% else %}⚠️{% endif %}
+    </div>
+    <div class="err-code">{{ code }}</div>
+    <div class="err-title">{{ message }}</div>
+    <div class="err-detail">{{ detail }}</div>
+    <div class="btn-group">
+      <a href="/" class="btn-a btn-outline">← Back to Store</a>
+      <a href="/admin/login" class="btn-a btn-primary">Admin Login</a>
+    </div>
+  </div>
+</body>
+</html>

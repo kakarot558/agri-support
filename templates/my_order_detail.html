@@ -1,0 +1,843 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_number }} — AgriFortress{% endblock %}
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   THREE-COLOR SYSTEM
+   ① Forest Green  — #0d3d20 / #155e32 / #1f7a42  (primary)
+   ② Harvest Gold  — #92600a / #b8790d / #d4931a  (accent)
+   ③ Rich Charcoal — #141f16 / #1e2e20 / #2c3e2f  (base/dark)
+═══════════════════════════════════════════════════════════ */
+:root {
+  --nav-h: 62px;
+
+  /* ① Forest Green */
+  --g-900: #071f0e;
+  --g-800: #0d3d20;
+  --g-700: #155e32;
+  --g-600: #1a7040;
+  --g-500: #1f7a42;
+  --g-400: #2d9e58;
+  --g-300: #52be7a;
+  --g-200: #9adcb1;
+  --g-100: #d4f0e0;
+  --g-50:  #edf8f2;
+
+  /* ② Harvest Gold */
+  --a-900: #4a2f04;
+  --a-800: #78490a;
+  --a-700: #92600a;
+  --a-600: #b8790d;
+  --a-500: #d4931a;
+  --a-400: #e8aa38;
+  --a-300: #f0c164;
+  --a-200: #f7d899;
+  --a-100: #fcefd5;
+  --a-50:  #fef8ed;
+
+  /* ③ Rich Charcoal */
+  --c-950: #090e0a;
+  --c-900: #141f16;
+  --c-800: #1e2e20;
+  --c-700: #2c3e2f;
+  --c-600: #3d5241;
+  --c-500: #536958;
+  --c-400: #7a9480;
+  --c-300: #a8bfac;
+  --c-200: #d0dcd2;
+  --c-100: #eaefeb;
+  --c-50:  #f5f7f5;
+
+  /* Semantics */
+  --bg-page:    var(--c-50);
+  --bg-card:    #ffffff;
+  --text-main:  var(--c-900);
+  --text-muted: var(--c-500);
+  --border:     var(--c-100);
+
+  /* Misc */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 24px;
+  --shadow-card: 0 2px 12px rgba(14,33,18,.07), 0 1px 3px rgba(14,33,18,.05);
+  --shadow-hover: 0 8px 32px rgba(14,33,18,.12), 0 2px 8px rgba(14,33,18,.06);
+  --shadow-hero:  0 16px 56px rgba(7,15,10,.42);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ─── Page ─── */
+.detail-page {
+  background: var(--bg-page);
+  min-height: calc(100vh - var(--nav-h));
+  padding: 32px 0 80px;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-main);
+}
+.detail-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ─── Breadcrumb ─── */
+.back-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 24px;
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--g-700); font-weight: 600; font-size: .82rem;
+  text-decoration: none; padding: 6px 12px;
+  border-radius: var(--r-sm);
+  background: var(--g-50); border: 1px solid var(--g-200);
+  transition: all .18s;
+}
+.back-link:hover { background: var(--g-100); color: var(--g-800); border-color: var(--g-300); transform: translateX(-2px); }
+.back-link i { font-size: .75rem; }
+.bc-sep     { color: var(--c-300); font-size: .7rem; }
+.bc-current { font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 600; color: var(--c-600); letter-spacing: .04em; }
+
+/* ─── HERO CARD ─── */
+.tracker-hero {
+  background:
+    radial-gradient(ellipse 70% 60% at 90% 10%, rgba(212,147,26,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 80% at 10% 90%, rgba(31,122,66,.35) 0%, transparent 55%),
+    linear-gradient(148deg, var(--c-950) 0%, var(--g-900) 35%, var(--g-800) 70%, var(--c-800) 100%);
+  border-radius: var(--r-xl);
+  padding: 30px 30px 26px;
+  margin-bottom: 18px;
+  color: #fff;
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-hero);
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+/* Gold top accent bar */
+.tracker-hero::before {
+  content: '';
+  position: absolute; top: 0; left: 30px; right: 30px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--a-500), transparent);
+}
+/* Grain texture */
+.tracker-hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; opacity: .6;
+}
+
+/* Decorative wheat icon */
+.hero-deco {
+  position: absolute; right: 22px; bottom: -10px;
+  font-size: 8rem; opacity: .06;
+  transform: rotate(-15deg);
+  pointer-events: none; user-select: none;
+  filter: grayscale(1);
+}
+
+/* Order number + date */
+.hero-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+.hero-id-block {}
+.hero-label {
+  font-size: .65rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--a-400);
+  margin-bottom: 4px;
+}
+.hero-order-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem; font-weight: 700; color: #fff;
+  letter-spacing: .05em;
+}
+.hero-date {
+  font-size: .76rem; color: rgba(255,255,255,.48);
+  margin-top: 5px; font-weight: 400;
+}
+
+/* Status badge */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 100px;
+  font-size: .8rem; font-weight: 700; letter-spacing: .04em;
+  border: 1px solid transparent; flex-shrink: 0;
+  backdrop-filter: blur(8px);
+}
+.sp-Pending    { background: rgba(212,147,26,.2);  color: var(--a-300);  border-color: rgba(212,147,26,.35); }
+.sp-Confirmed  { background: rgba(52,190,88,.18);  color: #86efac;       border-color: rgba(52,190,88,.3); }
+.sp-Processing { background: rgba(99,155,255,.18); color: #bfdbfe;       border-color: rgba(99,155,255,.3); }
+.sp-Shipped    { background: rgba(56,211,253,.15); color: #a5f3fc;       border-color: rgba(56,211,253,.3); }
+.sp-Delivered  { background: rgba(74,222,128,.18); color: #bbf7d0;       border-color: rgba(74,222,128,.3); }
+.sp-Cancelled  { background: rgba(248,113,113,.15);color: #fca5a5;       border-color: rgba(248,113,113,.3); }
+
+/* ─── STEPPER ─── */
+.stepper {
+  display: flex; align-items: flex-start;
+  position: relative; z-index: 1;
+  margin-top: 28px;
+}
+.step {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  position: relative;
+}
+.step:not(:last-child)::after {
+  content: ''; position: absolute;
+  top: 19px; left: 50%; width: 100%; height: 2px;
+  background: rgba(255,255,255,.12); z-index: 0;
+}
+.step.done::after   { background: linear-gradient(90deg, var(--g-400), var(--g-400)); opacity: .7; }
+.step.active::after { background: linear-gradient(90deg, var(--g-400), rgba(255,255,255,.1)); opacity: .7; }
+
+.step-circle {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; position: relative; z-index: 1; transition: .3s;
+}
+.step.done   .step-circle { background: var(--g-500); border-color: var(--g-400); color: #fff; box-shadow: 0 0 0 4px rgba(31,122,66,.25); }
+.step.active .step-circle { border-color: var(--a-400); background: rgba(212,147,26,.18); box-shadow: 0 0 0 5px rgba(212,147,26,.2); }
+
+.step-inner-dot {
+  width: 10px; height: 10px;
+  background: var(--a-400); border-radius: 50%;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.45);opacity:.75} }
+
+.step-lbl {
+  font-size: .6rem; font-weight: 700; text-align: center; margin-top: 8px;
+  color: rgba(255,255,255,.38); text-transform: uppercase; letter-spacing: .06em; line-height: 1.3;
+}
+.step.done .step-lbl   { color: var(--g-200); }
+.step.active .step-lbl { color: var(--a-300); }
+.step-date {
+  font-size: .56rem; color: rgba(255,255,255,.3); text-align: center; margin-top: 2px; min-height: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.step.done .step-date   { color: var(--g-300); }
+.step.active .step-date { color: var(--a-400); }
+
+.cancelled-strip {
+  background: rgba(239,68,68,.12); border: 1px solid rgba(248,113,113,.25);
+  border-radius: var(--r-sm); padding: 12px 16px;
+  color: #fca5a5; font-weight: 700; font-size: .875rem;
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 20px; position: relative; z-index: 1;
+}
+
+/* ─── J&T TRACKING ─── */
+.jnt-block {
+  margin-top: 22px;
+  position: relative; z-index: 1;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid rgba(212,147,26,.3);
+  background: rgba(212,147,26,.07);
+  backdrop-filter: blur(12px);
+}
+.jnt-block-inner {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px; flex-wrap: wrap;
+}
+.jnt-badge {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #e31837, #b8122c);
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-weight: 800; font-size: .92rem; letter-spacing: .05em;
+  padding: 8px 13px; border-radius: var(--r-sm);
+  box-shadow: 0 4px 14px rgba(227,24,55,.5);
+  line-height: 1;
+}
+.jnt-info { flex: 1; min-width: 120px; }
+.jnt-lbl {
+  font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--a-300); margin-bottom: 4px;
+}
+.jnt-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.02rem; font-weight: 700; color: #fff;
+  letter-spacing: .04em; word-break: break-all;
+}
+.jnt-btns { display: flex; gap: 9px; flex-shrink: 0; flex-wrap: wrap; }
+
+.btn-track {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: linear-gradient(135deg, #e31837, #c8102e);
+  color: #fff; border: none; border-radius: var(--r-sm);
+  padding: 10px 20px; font-size: .82rem; font-weight: 700;
+  cursor: pointer; text-decoration: none; font-family: 'Outfit', sans-serif;
+  box-shadow: 0 4px 16px rgba(227,24,55,.45);
+  transition: all .18s; white-space: nowrap;
+}
+.btn-track:hover { transform: translateY(-2px); box-shadow: 0 7px 20px rgba(227,24,55,.55); color: #fff; }
+
+.btn-copy {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+  border: 1px solid rgba(212,147,26,.4); border-radius: var(--r-sm);
+  padding: 9px 16px; font-size: .8rem; font-weight: 600;
+  cursor: pointer; font-family: 'Outfit', sans-serif;
+  transition: all .18s; white-space: nowrap;
+}
+.btn-copy:hover { background: rgba(212,147,26,.18); color: var(--a-300); border-color: var(--a-500); }
+
+.jnt-footer {
+  border-top: 1px solid rgba(212,147,26,.2);
+  padding: 8px 18px; font-size: .7rem;
+  color: rgba(255,255,255,.35);
+  display: flex; align-items: center; gap: 6px;
+}
+.jnt-footer i { color: var(--a-600); }
+
+/* ─── SECTION CARDS ─── */
+.sec-card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg); border: 1px solid var(--border);
+  margin-bottom: 14px; overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .22s, transform .22s;
+}
+.sec-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+
+.sec-head {
+  display: flex; align-items: center; gap: 13px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--c-100);
+  background: linear-gradient(90deg, var(--g-50), #fff);
+}
+.sec-ico {
+  width: 36px; height: 36px; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--g-700), var(--g-500));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(21,94,50,.3);
+}
+.sec-head h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 700; color: var(--c-900);
+  margin: 0; letter-spacing: -.01em;
+}
+.sec-badge {
+  margin-left: auto;
+  background: var(--a-50); color: var(--a-700);
+  border: 1px solid var(--a-200);
+  border-radius: 100px; padding: 3px 11px;
+  font-size: .72rem; font-weight: 700;
+}
+.sec-body { padding: 18px 22px; }
+
+/* ─── TIMELINE ─── */
+.tl-item { display: flex; gap: 14px; position: relative; padding-bottom: 18px; }
+.tl-item:not(:last-child)::before {
+  content: ''; position: absolute;
+  left: 18px; top: 37px; width: 2px; bottom: 0;
+  background: linear-gradient(180deg, var(--c-200), transparent);
+}
+.tl-dot {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .86rem; flex-shrink: 0; z-index: 1;
+  border: 2px solid var(--c-200); background: var(--c-50);
+  transition: .2s;
+}
+.tl-latest { background: var(--g-50); border-color: var(--g-300); box-shadow: 0 0 0 4px rgba(31,122,66,.1); }
+.tl-content { flex: 1; padding-top: 6px; }
+.tl-status { font-size: .875rem; font-weight: 700; color: var(--c-900); }
+.tl-actor  { font-size: .75rem; color: var(--text-muted); margin-top: 2px; }
+.tl-note   {
+  font-size: .82rem; color: var(--c-700); margin-top: 6px;
+  background: var(--a-50); border-radius: var(--r-sm);
+  padding: 8px 13px; border-left: 3px solid var(--a-500);
+  font-weight: 500;
+}
+.tl-time {
+  font-size: .7rem; color: var(--c-400); margin-top: 5px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── ITEMS ─── */
+.item-row { display: flex; align-items: center; gap: 15px; padding: 14px 0; border-bottom: 1px solid var(--c-100); }
+.item-row:last-child { border-bottom: none; }
+.item-thumb {
+  width: 54px; height: 54px; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--g-50), var(--a-50));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; flex-shrink: 0;
+  border: 1px solid var(--g-100);
+}
+.item-name { font-size: .9rem; font-weight: 700; color: var(--c-900); }
+.item-meta { font-size: .74rem; color: var(--text-muted); margin-top: 3px; }
+.item-price { font-size: .95rem; font-weight: 800; color: var(--g-700); margin-left: auto; white-space: nowrap; }
+
+/* ─── SUMMARY ─── */
+.sum-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--c-100);
+  font-size: .875rem;
+}
+.sum-row:last-child { border-bottom: none; }
+.sl { color: var(--text-muted); font-weight: 500; }
+.sv { font-weight: 700; color: var(--c-900); }
+
+.sum-total {
+  background: linear-gradient(135deg, var(--g-50), var(--a-50)) !important;
+  border-radius: var(--r-sm); padding: 14px 16px !important;
+  margin-top: 8px; border: 1px solid var(--g-200) !important;
+}
+.sum-total .sl { font-weight: 700; color: var(--g-700); font-size: .9rem; }
+.sum-total .sv { font-size: 1.14rem; font-weight: 800; color: var(--g-800); }
+
+/* Payment status colors */
+.sv-paid     { color: var(--g-600) !important; font-weight: 800; }
+.sv-unpaid   { color: var(--a-700) !important; }
+.sv-failed   { color: #dc2626 !important; }
+
+/* ─── DIVIDER ─── */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--a-300), transparent);
+  margin: 4px 0 14px;
+  opacity: .5;
+}
+
+/* ─── HELP BAR ─── */
+.help-bar {
+  background: linear-gradient(135deg, var(--c-900), var(--g-800));
+  border-radius: var(--r-md); padding: 18px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-top: 4px;
+  border: 1px solid rgba(255,255,255,.06);
+  position: relative; overflow: hidden;
+}
+.help-bar::before {
+  content: '';
+  position: absolute; top: 0; left: 24px; right: 24px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--a-600), transparent);
+}
+.help-bar p { font-size: .875rem; color: rgba(255,255,255,.8); margin: 0; font-weight: 500; }
+.help-bar p i { color: var(--a-400); }
+.btn-help {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: linear-gradient(135deg, var(--a-600), var(--a-700));
+  color: #fff; border-radius: var(--r-sm); padding: 10px 22px;
+  font-weight: 700; font-size: .84rem; text-decoration: none;
+  box-shadow: 0 3px 12px rgba(184,121,13,.4); transition: all .18s;
+}
+.btn-help:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(184,121,13,.5); color: #fff; }
+
+/* ─── CANCEL SECTION ─── */
+.cancel-section {
+  background: #fff; border: 1.5px solid #fecaca;
+  border-radius: var(--r-md); padding: 20px 22px; margin-top: 14px;
+}
+.cancel-section-title { font-weight: 800; font-size: .875rem; color: #b91c1c; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.cancel-section-sub   { font-size: .82rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.55; }
+.btn-cancel-open {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px; border: 2px solid #fecaca;
+  border-radius: var(--r-sm); background: #fff; color: #dc2626;
+  font-weight: 700; font-size: .84rem; cursor: pointer;
+  font-family: 'Outfit', sans-serif; transition: all .18s;
+}
+.btn-cancel-open:hover { background: #fef2f2; border-color: #dc2626; transform: translateY(-1px); }
+
+/* ─── MODAL ─── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(7,15,10,.65); z-index: 1000;
+  align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(6px);
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #fff; border-radius: var(--r-xl); padding: 32px;
+  width: 100%; max-width: 430px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.3);
+  animation: modal-in .28s cubic-bezier(.22,.68,0,1.15);
+  border-top: 3px solid var(--a-500);
+}
+@keyframes modal-in { from{opacity:0;transform:scale(.9) translateY(20px)} to{opacity:1;transform:none} }
+.modal-icon  { font-size: 2.8rem; text-align: center; margin-bottom: 14px; }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 800; color: var(--c-900); text-align: center; margin-bottom: 7px; }
+.modal-sub   { font-size: .84rem; color: var(--text-muted); text-align: center; margin-bottom: 22px; line-height: 1.55; }
+.modal-label { font-size: .76rem; font-weight: 700; color: var(--c-700); margin-bottom: 7px; display: block; text-transform: uppercase; letter-spacing: .06em; }
+.modal-select {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--c-200);
+  border-radius: var(--r-sm); font-size: .875rem;
+  font-family: 'Outfit', sans-serif; color: var(--c-900);
+  margin-bottom: 20px; background: var(--c-50);
+  transition: border-color .18s;
+}
+.modal-select:focus { outline: none; border-color: var(--a-500); box-shadow: 0 0 0 3px rgba(212,147,26,.15); }
+.modal-actions { display: flex; gap: 10px; }
+.btn-modal-keep {
+  flex: 1; padding: 12px; border: 1.5px solid var(--c-200); border-radius: var(--r-sm);
+  background: #fff; color: var(--text-muted); font-weight: 700; font-size: .875rem;
+  cursor: pointer; font-family: 'Outfit', sans-serif; transition: .18s;
+}
+.btn-modal-keep:hover { border-color: var(--c-400); color: var(--c-800); background: var(--c-50); }
+.btn-modal-confirm {
+  flex: 1; padding: 12px; border: none; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff;
+  font-weight: 800; font-size: .875rem; cursor: pointer;
+  font-family: 'Outfit', sans-serif; transition: .18s;
+  box-shadow: 0 3px 12px rgba(220,38,38,.35);
+}
+.btn-modal-confirm:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(220,38,38,.45); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tracker-hero { animation: fade-up .4s ease both; }
+.sec-card     { animation: fade-up .4s ease both; }
+.sec-card:nth-of-type(2) { animation-delay: .06s; }
+.sec-card:nth-of-type(3) { animation-delay: .12s; }
+.sec-card:nth-of-type(4) { animation-delay: .18s; }
+.sec-card:nth-of-type(5) { animation-delay: .24s; }
+.help-bar       { animation: fade-up .4s ease .28s both; }
+.cancel-section { animation: fade-up .4s ease .32s both; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 540px) {
+  .tracker-hero { padding: 22px 18px 20px; }
+  .hero-order-num { font-size: 1rem; }
+  .jnt-block-inner { gap: 12px; }
+  .jnt-btns { flex-direction: row; }
+  .sec-body { padding: 15px 16px; }
+  .sec-head { padding: 14px 16px; }
+  .help-bar { padding: 16px 18px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-page">
+  <div class="detail-wrap">
+
+    <!-- Breadcrumb -->
+    <div class="back-row">
+      <a href="{{ url_for('my_orders') }}" class="back-link">
+        <i class="bi bi-arrow-left"></i> My Orders
+      </a>
+      <span class="bc-sep">/</span>
+      <span class="bc-current">{{ order.order_number }}</span>
+    </div>
+
+    <!-- ═══ HERO ═══ -->
+    <div class="tracker-hero">
+      <div class="hero-deco">🌾</div>
+
+      <!-- Top row -->
+      <div class="hero-top">
+        <div class="hero-id-block">
+          <div class="hero-label">Order Reference</div>
+          <div class="hero-order-num">{{ order.order_number }}</div>
+          <div class="hero-date">Placed {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+        </div>
+        <span class="status-pill sp-{{ order.status }}">
+          {% if order.status=='Pending' %}⏳
+          {% elif order.status=='Confirmed' %}✅
+          {% elif order.status=='Processing' %}⚙️
+          {% elif order.status=='Shipped' %}🚚
+          {% elif order.status=='Delivered' %}🎉
+          {% elif order.status=='Cancelled' %}❌
+          {% endif %}
+          {{ order.status }}
+        </span>
+      </div>
+
+      <!-- Stepper -->
+      {% if order.status != 'Cancelled' %}
+      {% set steps = [('Pending','📋','Placed'),('Confirmed','✅','Confirmed'),('Processing','⚙️','Preparing'),('Shipped','🚚','Shipped'),('Delivered','🎉','Delivered')] %}
+      {% set snames = ['Pending','Confirmed','Processing','Shipped','Delivered'] %}
+      {% set cur_idx = snames.index(order.status) if order.status in snames else 0 %}
+      {% set emap = {} %}
+      {% for ev in order.events %}{% if ev.status not in emap %}{% set _ = emap.update({ev.status: ev.created_at}) %}{% endif %}{% endfor %}
+      <div class="stepper">
+        {% for st, ico, lbl in steps %}{% set idx = loop.index0 %}
+        <div class="step {% if idx < cur_idx %}done{% elif idx == cur_idx %}active{% endif %}">
+          <div class="step-circle">
+            {% if idx < cur_idx %}✓
+            {% elif idx == cur_idx %}<div class="step-inner-dot"></div>
+            {% else %}{{ ico }}{% endif %}
+          </div>
+          <div class="step-lbl">{{ lbl }}</div>
+          <div class="step-date">{% if emap.get(st) %}{{ emap[st].strftime('%b %d') }}{% endif %}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="cancelled-strip">
+        <i class="bi bi-x-circle-fill"></i> This order has been cancelled.
+      </div>
+      {% endif %}
+
+      <!-- J&T Tracking Block -->
+      {% if order.tracking_number %}
+      <div class="jnt-block">
+        <div class="jnt-block-inner">
+          <div class="jnt-badge">J&T</div>
+          <div class="jnt-info">
+            <div class="jnt-lbl">{{ order.shipping_method }} Express — Tracking Number</div>
+            <div class="jnt-num" id="tn">{{ order.tracking_number }}</div>
+          </div>
+          <div class="jnt-btns">
+            <a href="https://www.jtexpress.ph/track-and-trace?query={{ order.tracking_number }}"
+               target="_blank" rel="noopener" class="btn-track">
+              <i class="bi bi-truck"></i> Track Parcel
+            </a>
+            <button class="btn-copy" onclick="copyTN()" type="button" id="copyBtn">
+              <i class="bi bi-clipboard"></i> Copy
+            </button>
+          </div>
+        </div>
+        <div class="jnt-footer">
+          <i class="bi bi-box-arrow-up-right"></i>
+          Opens the official J&T Express tracking page in a new tab.
+        </div>
+      </div>
+
+      {% elif order.status == 'Shipped' %}
+      <div class="jnt-block">
+        <div class="jnt-block-inner">
+          <div class="jnt-badge">J&T</div>
+          <div class="jnt-info">
+            <div class="jnt-lbl">{{ order.shipping_method }} — Awaiting Tracking</div>
+            <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:3px;">
+              Your tracking number will appear here once assigned by the courier.
+            </div>
+          </div>
+          <a href="https://www.jtexpress.ph/track-and-trace"
+             target="_blank" rel="noopener" class="btn-track">
+            <i class="bi bi-box-arrow-up-right"></i> J&T Site
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /tracker-hero -->
+
+    <div class="gold-divider"></div>
+
+    <!-- ═══ ORDER HISTORY ═══ -->
+    {% if order.events %}
+    <div class="sec-card">
+      <div class="sec-head">
+        <div class="sec-ico"><i class="bi bi-clock-history"></i></div>
+        <h3>Order History</h3>
+      </div>
+      <div class="sec-body">
+        {% for ev in order.events|reverse %}
+        <div class="tl-item">
+          <div class="tl-dot {% if loop.first %}tl-latest{% else %}tl-past{% endif %}">
+            {% if ev.status=='Pending' %}📋
+            {% elif ev.status=='Confirmed' %}✅
+            {% elif ev.status=='Processing' %}⚙️
+            {% elif ev.status=='Shipped' %}🚚
+            {% elif ev.status=='Delivered' %}🎉
+            {% elif ev.status=='Cancelled' %}❌
+            {% else %}•{% endif %}
+          </div>
+          <div class="tl-content">
+            <div class="tl-status">{{ ev.status }}</div>
+            {% if ev.actor %}<div class="tl-actor">by {{ ev.actor }}</div>{% endif %}
+            {% if ev.note  %}<div class="tl-note">{{ ev.note }}</div>{% endif %}
+            <div class="tl-time">{{ ev.created_at.strftime('%B %d, %Y · %I:%M %p') }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══ ITEMS ORDERED ═══ -->
+    <div class="sec-card">
+      <div class="sec-head">
+        <div class="sec-ico"><i class="bi bi-box-seam"></i></div>
+        <h3>Items Ordered</h3>
+        <span class="sec-badge">{{ order.item_count }} item{{ 's' if order.item_count != 1 }}</span>
+      </div>
+      <div class="sec-body">
+        {% for item in order.items %}
+        <div class="item-row">
+          <div class="item-thumb">
+            {% set cat = item.product.category if item.product else '' %}
+            {% if cat=='Seeds' %}🌱
+            {% elif cat=='Fertilizer' %}🧪
+            {% elif cat=='Equipment' %}🚜
+            {% else %}🔧{% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="item-name">{{ item.product_name }}</div>
+            {% if item.packaging_type %}<div class="item-meta">{{ item.packaging_type }}</div>{% endif %}
+            <div class="item-meta">Qty: {{ item.quantity }} · ₱{{ "%.2f"|format(item.unit_price) }} each</div>
+          </div>
+          <div class="item-price">₱{{ "%.2f"|format(item.subtotal) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ═══ PAYMENT SUMMARY ═══ -->
+    <div class="sec-card">
+      <div class="sec-head">
+        <div class="sec-ico"><i class="bi bi-receipt"></i></div>
+        <h3>Payment Summary</h3>
+      </div>
+      <div class="sec-body">
+        <div class="sum-row">
+          <span class="sl">Subtotal</span>
+          <span class="sv">₱{{ "%.2f"|format(order.subtotal) }}</span>
+        </div>
+        <div class="sum-row">
+          <span class="sl">Shipping ({{ order.shipping_method }})</span>
+          <span class="sv">{% if order.shipping_fee == 0 %}<span style="color:var(--g-600);font-weight:800;">FREE</span>{% else %}₱{{ "%.2f"|format(order.shipping_fee) }}{% endif %}</span>
+        </div>
+        <div class="sum-row">
+          <span class="sl">Payment Method</span>
+          <span class="sv">{{ order.payment_method }}</span>
+        </div>
+        <div class="sum-row">
+          <span class="sl">Payment Status</span>
+          <span class="sv {% if order.payment_status=='Paid' %}sv-paid{% elif order.payment_status=='Unpaid' %}sv-unpaid{% elif order.payment_status=='Failed' %}sv-failed{% endif %}">
+            {% if order.payment_status=='Paid' %}✓ {% endif %}{{ order.payment_status }}
+          </span>
+        </div>
+        <div class="sum-row sum-total">
+          <span class="sl">Order Total</span>
+          <span class="sv">₱{{ "%.2f"|format(order.total_amount) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DELIVERY INFO ═══ -->
+    <div class="sec-card">
+      <div class="sec-head">
+        <div class="sec-ico"><i class="bi bi-geo-alt-fill"></i></div>
+        <h3>Delivery Information</h3>
+      </div>
+      <div class="sec-body">
+        <div class="sum-row"><span class="sl">Recipient</span><span class="sv">{{ order.customer_name }}</span></div>
+        <div class="sum-row"><span class="sl">Phone</span><span class="sv">{{ order.customer_phone }}</span></div>
+        <div class="sum-row">
+          <span class="sl">Address</span>
+          <span class="sv" style="text-align:right;max-width:60%;">
+            {{ order.shipping_address }}{% if order.city %}, {{ order.city }}{% endif %}{% if order.province %}, {{ order.province }}{% endif %}
+          </span>
+        </div>
+        {% if order.notes %}
+        <div class="sum-row"><span class="sl">Notes</span><span class="sv">{{ order.notes }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Help bar -->
+    <div class="help-bar">
+      <p><i class="bi bi-headset me-2"></i>Need help with this order?</p>
+      <a href="{{ url_for('index') }}#contact" class="btn-help">
+        <i class="bi bi-chat-dots"></i> Contact Support
+      </a>
+    </div>
+
+    <!-- Cancel -->
+    {% if order.status in ('Pending', 'Confirmed') and not current_user.is_admin %}
+    <div class="cancel-section">
+      <div class="cancel-section-title">
+        <i class="bi bi-x-circle-fill"></i> Cancel This Order
+      </div>
+      <div class="cancel-section-sub">
+        You may cancel while status is <strong>{{ order.status }}</strong>. Once processing begins, cancellation is no longer available.
+      </div>
+      <button class="btn-cancel-open" onclick="openCancelModal()">
+        <i class="bi bi-x-circle"></i> Request Cancellation
+      </button>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Cancel Modal -->
+{% if order.status in ('Pending', 'Confirmed') and not current_user.is_admin %}
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Cancel Order?</div>
+    <div class="modal-sub">
+      Order <strong>{{ order.order_number }}</strong> will be cancelled and your items will be restocked.
+    </div>
+    <form method="POST" action="{{ url_for('cancel_order', order_number=order.order_number) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="modal-label" for="cancel_reason">Reason for cancellation</label>
+      <select name="cancel_reason" id="cancel_reason" class="modal-select">
+        <option value="Changed my mind">Changed my mind</option>
+        <option value="Ordered by mistake">Ordered by mistake</option>
+        <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+        <option value="Shipping takes too long">Shipping takes too long</option>
+        <option value="Other">Other</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-keep" onclick="closeCancelModal()">Keep Order</button>
+        <button type="submit" class="btn-modal-confirm">
+          <i class="bi bi-x-circle"></i> Yes, Cancel It
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyTN() {
+  var el  = document.getElementById('tn');
+  var btn = document.getElementById('copyBtn');
+  if (!el || !btn) return;
+  var text = el.textContent.trim();
+  var done = function() {
+    btn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copied!';
+    btn.style.cssText = 'background:rgba(52,190,88,.2);border-color:rgba(52,190,88,.5);color:#86efac;';
+    setTimeout(function() {
+      btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+      btn.style.cssText = '';
+    }, 2400);
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(done).catch(done);
+  } else {
+    var r = document.createRange();
+    r.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(r);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    done();
+  }
+}
+
+function openCancelModal() {
+  var m = document.getElementById('cancelModal');
+  if (m) { m.classList.add('show'); document.body.style.overflow = 'hidden'; }
+}
+function closeCancelModal() {
+  var m = document.getElementById('cancelModal');
+  if (m) { m.classList.remove('show'); document.body.style.overflow = ''; }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var overlay = document.getElementById('cancelModal');
+  if (overlay) overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeCancelModal();
+  });
+});
+</script>
+{% endblock %}

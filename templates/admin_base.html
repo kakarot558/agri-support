@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Admin — AgriFortress{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#3D5A80">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="ag-body">
+
+<div class="ag-overlay" id="agOverlay" onclick="closeSB()"></div>
+
+<div class="ag-layout">
+
+  <!-- Sidebar -->
+  <aside class="ag-sidebar" id="agSidebar">
+
+    <div class="sb-head">
+      <div class="sb-icon">🌾</div>
+      <div class="sb-brand-wrap">
+        <div class="sb-name">Agri<em>support</em></div>
+        <div class="sb-tag">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-group">Main</div>
+
+      <a href="{{ url_for('admin_dashboard') }}"
+         class="sb-link {% if request.endpoint == 'admin_dashboard' %}on{% endif %}">
+        <i class="bi bi-speedometer2"></i>
+        <span class="lbl">Dashboard</span>
+      </a>
+
+      <a href="{{ url_for('admin_products') }}"
+         class="sb-link {% if 'product' in request.endpoint %}on{% endif %}">
+        <i class="bi bi-box-seam"></i>
+        <span class="lbl">Products</span>
+      </a>
+
+      <a href="{{ url_for('admin_campaigns') }}"
+         class="sb-link {% if 'campaign' in request.endpoint %}on{% endif %}">
+        <i class="bi bi-megaphone"></i>
+        <span class="lbl">Campaigns</span>
+      </a>
+
+      <a href="{{ url_for('admin_scheduled') }}"
+         class="sb-link {% if request.endpoint == 'admin_scheduled' %}on{% endif %}">
+        <i class="bi bi-clock"></i>
+        <span class="lbl">Scheduled Posts</span>
+      </a>
+
+      <a href="{{ url_for('admin_logs') }}"
+         class="sb-link {% if request.endpoint == 'admin_logs' %}on{% endif %}">
+        <i class="bi bi-journal-text"></i>
+        <span class="lbl">Logs</span>
+      </a>
+
+      <div class="sb-group">Orders & Stock</div>
+      <a href="{{ url_for('admin_orders') }}"
+         class="sb-link {% if 'order' in request.endpoint and request.endpoint != 'admin_cod' %}on{% endif %}">
+        <i class="bi bi-bag-check"></i>
+        <span class="lbl">Orders</span>
+      </a>
+      <a href="{{ url_for('admin_inventory') }}"
+         class="sb-link {% if request.endpoint == 'admin_inventory' %}on{% endif %}">
+        <i class="bi bi-boxes"></i>
+        <span class="lbl">Inventory</span>
+      </a>
+
+      <a href="{{ url_for('admin_cod') }}"
+         class="sb-link {% if request.endpoint == 'admin_cod' %}on{% endif %}">
+        <i class="bi bi-cash-coin"></i>
+        <span class="lbl">COD</span>
+      </a>
+      <div class="sb-group">Tools</div>
+
+      <a href="{{ url_for('admin_backup') }}"
+         class="sb-link {% if request.endpoint == 'admin_backup' %}on{% endif %}">
+        <i class="bi bi-cloud-arrow-down"></i>
+        <span class="lbl">Backup &amp; Restore</span>
+      </a>
+
+      <div class="sb-group">Store</div>
+
+      <a href="{{ url_for('index') }}" class="sb-link" target="_blank">
+        <i class="bi bi-shop"></i>
+        <span class="lbl">View Store</span>
+        <i class="bi bi-box-arrow-up-right ext"></i>
+      </a>
+
+      <a href="{{ url_for('logout') }}" class="sb-link danger">
+        <i class="bi bi-box-arrow-left"></i>
+        <span class="lbl">Logout</span>
+      </a>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-av">{{ current_user.username[0].upper() }}</div>
+      <div style="min-width:0">
+        <div class="sb-username">{{ current_user.username }}</div>
+        <div class="sb-role">{{ current_user.role }}</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <div class="ag-main">
+
+    <!-- Topbar -->
+    <div class="ag-topbar">
+      <button class="ag-hamburger" onclick="openSB()">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="ag-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="ag-topbar-r">
+        <span class="ag-clock" id="agClock"></span>
+        <a href="{{ url_for('add_product') }}" class="btn-top">
+          <i class="bi bi-plus-lg"></i> New Product
+        </a>
+      </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="padding:12px 22px 0">
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'danger' if cat == 'error' else cat }} alert-dismissible fade show mb-2">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Page content -->
+    <div class="ag-content">
+      {% block content %}{% endblock %}
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% block extra_js %}{% endblock %}
+
+<script>
+// Sidebar toggle
+function openSB()  { document.getElementById('agSidebar').classList.add('show');  document.getElementById('agOverlay').classList.add('show');  }
+function closeSB() { document.getElementById('agSidebar').classList.remove('show'); document.getElementById('agOverlay').classList.remove('show'); }
+
+// Live clock
+(function tick(){
+  var el = document.getElementById('agClock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setTimeout(tick, 1000);
+})();
+
+// Service worker
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
+</script>
+</body>
+</html>

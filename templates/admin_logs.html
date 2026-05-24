@@ -1,0 +1,113 @@
+{% extends "admin_base.html" %}
+{% block title %}Logs — AgriFortress{% endblock %}
+{% block page_title %}System Logs{% endblock %}
+
+{% block content %}
+
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title"><i class="bi bi-activity"></i> Automation Logs</h6>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th style="padding-left:18px;">#</th>
+          <th>Event</th>
+          <th>Status</th>
+          <th>Message</th>
+          <th>Product</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in auto_logs.items %}
+        <tr>
+          <td style="padding-left:18px;color:var(--ink4);font-size:.78rem;">{{ log.id }}</td>
+          <td><span class="ev-code">{{ log.event_type }}</span></td>
+          <td><span class="ls ls-{{ log.status }}">{{ log.status }}</span></td>
+          <td style="font-size:.8rem;color:var(--ink3);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ log.message or '—' }}
+          </td>
+          <td style="font-size:.8rem;color:var(--ink4);">
+            {{ log.product.name[:28] if log.product else '—' }}
+          </td>
+          <td style="font-size:.78rem;color:var(--ink4);white-space:nowrap;">
+            {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:40px;color:var(--ink4);">No automation logs yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if auto_logs.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    {% if auto_logs.has_prev %}
+    <li class="page-item"><a class="page-link" href="{{ url_for('admin_logs', page=auto_logs.prev_num) }}">«</a></li>
+    {% endif %}
+    {% for p in auto_logs.iter_pages() %}
+    {% if p %}
+    <li class="page-item {% if p == auto_logs.page %}active{% endif %}">
+      <a class="page-link" href="{{ url_for('admin_logs', page=p) }}">{{ p }}</a>
+    </li>
+    {% endif %}
+    {% endfor %}
+    {% if auto_logs.has_next %}
+    <li class="page-item"><a class="page-link" href="{{ url_for('admin_logs', page=auto_logs.next_num) }}">»</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+<div class="ag-card">
+  <div class="ag-card-head">
+    <h6 class="ag-card-title">
+      <i class="bi bi-facebook" style="color:#1877f2;"></i> Facebook Post Logs
+    </h6>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr>
+          <th style="padding-left:18px;">#</th>
+          <th>Product</th>
+          <th>Post ID</th>
+          <th>Status</th>
+          <th>Retries</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fb in fb_logs %}
+        <tr>
+          <td style="padding-left:18px;color:var(--ink4);font-size:.78rem;">{{ fb.id }}</td>
+          <td style="font-size:.8rem;">{{ fb.product.name[:32] if fb.product else 'N/A' }}</td>
+          <td>
+            {% if fb.post_id %}
+            <code style="font-size:.75rem;color:var(--grn);">{{ fb.post_id[:20] }}…</code>
+            {% else %}
+            <span style="color:var(--ink4);">—</span>
+            {% endif %}
+          </td>
+          <td><span class="ls ls-{{ fb.status }}">{{ fb.status }}</span></td>
+          <td style="color:var(--ink4);font-size:.8rem;text-align:center;">{{ fb.retry_count }}</td>
+          <td style="font-size:.78rem;color:var(--ink4);white-space:nowrap;">{{ fb.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:40px;color:var(--ink4);">No Facebook posts yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

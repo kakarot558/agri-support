@@ -1,0 +1,82 @@
+{% extends "admin_base.html" %}
+{% block title %}COD Transactions — AgriFortress Admin{% endblock %}
+{% block page_title %}COD Transactions{% endblock %}
+
+{% block content %}
+<style>
+.cod-stat{background:white;border-radius:14px;border:1.5px solid var(--brd);padding:16px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(30,45,61,.05);}
+.cod-stat-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.cod-stat-n{font-size:1.2rem;font-weight:800;color:var(--ink);}
+.cod-stat-lbl{font-size:.74rem;color:var(--ink4);}
+.cod-pill{display:inline-block;padding:2px 10px;border-radius:100px;font-size:.72rem;font-weight:700;}
+.cod-pending  {background:#fff3cd;color:#92400e;}
+.cod-collected{background:#d1ecf1;color:#0c5460;}
+.cod-remitted {background:#d1fae5;color:#065f46;}
+.cod-failed   {background:#fee2e2;color:#991b1b;}
+</style>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+  <div class="cod-stat">
+    <div class="cod-stat-ico" style="background:#fff3cd;color:#92400e;">💵</div>
+    <div><div class="cod-stat-n">{{ cod_orders|length }}</div><div class="cod-stat-lbl">Total COD Orders</div></div>
+  </div>
+  <div class="cod-stat">
+    <div class="cod-stat-ico" style="background:#fef9c3;color:#854d0e;">⏳</div>
+    <div><div class="cod-stat-n">₱{{ "{:,.0f}".format(summary.total_pending) }}</div><div class="cod-stat-lbl">Pending</div></div>
+  </div>
+  <div class="cod-stat">
+    <div class="cod-stat-ico" style="background:#d1ecf1;color:#0c5460;">📦</div>
+    <div><div class="cod-stat-n">₱{{ "{:,.0f}".format(summary.total_collected) }}</div><div class="cod-stat-lbl">Collected</div></div>
+  </div>
+  <div class="cod-stat">
+    <div class="cod-stat-ico" style="background:#d1fae5;color:#065f46;">✅</div>
+    <div><div class="cod-stat-n">₱{{ "{:,.0f}".format(summary.total_remitted) }}</div><div class="cod-stat-lbl">Remitted</div></div>
+  </div>
+</div>
+
+<div class="ag-card">
+  <div class="ag-card-head"><h6 class="ag-card-title">💵 COD Orders</h6></div>
+  <div style="overflow-x:auto;">
+    <table class="ag-tbl">
+      <thead>
+        <tr><th>Order #</th><th>Customer</th><th>Amount</th><th>COD Status</th><th>Order Status</th><th>Date</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for order in cod_orders %}
+        {% set cod_st = order.cod_transaction.cod_status if order.cod_transaction else 'pending' %}
+        <tr>
+          <td><strong style="font-family:monospace;font-size:.85rem;">{{ order.order_number }}</strong></td>
+          <td>
+            <div style="font-weight:600;">{{ order.customer_name }}</div>
+            <div style="font-size:.74rem;color:var(--ink4);">{{ order.customer_phone }}</div>
+          </td>
+          <td><strong>₱{{ "%.2f"|format(order.total_amount) }}</strong></td>
+          <td><span class="cod-pill cod-{{ cod_st }}">{{ cod_st.title() }}</span></td>
+          <td><span style="font-size:.78rem;">{{ order.status }}</span></td>
+          <td style="font-size:.75rem;color:var(--ink4);">{{ order.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            {% if cod_st not in ('remitted','failed') %}
+            <form method="POST" action="{{ url_for('update_cod_status', order_id=order.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% if cod_st == 'pending' %}
+              <input type="hidden" name="cod_status" value="collected">
+              <button class="btn-o sm" type="submit">Mark Collected</button>
+              {% elif cod_st == 'collected' %}
+              <input type="hidden" name="cod_status" value="remitted">
+              <button class="btn-p sm" type="submit">Mark Remitted</button>
+              {% endif %}
+            </form>
+            {% else %}
+            <span style="font-size:.76rem;color:var(--ink4);">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink4);">No COD orders found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

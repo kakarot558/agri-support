@@ -1,0 +1,174 @@
+{% extends "admin_base.html" %}
+{% block title %}Backup & Restore — AgriFortress{% endblock %}
+{% block page_title %}Backup &amp; Restore{% endblock %}
+
+{% block content %}
+
+<!-- ── Flash messages ── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'danger' }}"
+       style="border-radius:var(--r-sm);padding:12px 16px;margin-bottom:14px;
+              background:{{ '#f0fdf4' if cat == 'success' else '#fffbeb' if cat == 'warning' else '#fef2f2' }};
+              border:1px solid {{ '#86efac' if cat == 'success' else '#fcd34d' if cat == 'warning' else '#fca5a5' }};
+              color:{{ '#166534' if cat == 'success' else '#92400e' if cat == 'warning' else '#991b1b' }};
+              font-size:.875rem;">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- ── Overview cards ── -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+  {% set table_labels = {
+    'products': ('📦','Products','#16a34a'),
+    'orders': ('🛒','Orders','#2563eb'),
+    'campaigns': ('📣','Campaigns','#d97706'),
+    'users': ('👤','Users','#7c3aed'),
+    'automation_logs': ('🤖','Auto Logs','#6b7280'),
+    'facebook_post_logs': ('📘','FB Logs','#1877f2'),
+  } %}
+  {% for tbl, (icon, label, color) in table_labels.items() %}
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);
+              padding:14px 16px;text-align:center;">
+    <div style="font-size:1.4rem;">{{ icon }}</div>
+    <div style="font-size:1.4rem;font-weight:800;color:{{ color }};margin:2px 0;">
+      {{ counts.get(tbl, '?') }}
+    </div>
+    <div style="font-size:.72rem;color:var(--ink4);font-weight:600;">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+  <!-- ── BACKUP column ── -->
+  <div class="ag-card">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-cloud-arrow-down" style="color:var(--grn);"></i>
+        Create Backup
+      </h6>
+    </div>
+    <div class="ag-card-body">
+      <p style="font-size:.855rem;color:var(--ink3);margin-bottom:16px;">
+        Download a complete backup of your database, products, campaigns, and all uploaded product images.
+        Store this ZIP file safely — you can use it to restore at any time.
+      </p>
+
+      <div style="background:var(--grn-l);border:1px solid var(--grn-m);border-radius:var(--r-sm);
+                  padding:14px 16px;margin-bottom:18px;font-size:.8rem;color:var(--ink2);">
+        <strong style="color:var(--grn);display:block;margin-bottom:6px;">
+          <i class="bi bi-info-circle"></i> What's included
+        </strong>
+        <ul style="margin:0;padding-left:18px;line-height:1.9;">
+          <li><strong>database/agristore.db</strong> — full SQLite database</li>
+          <li><strong>data/full_dump.json</strong> — all records in JSON format</li>
+          <li><strong>data/products.csv</strong> — products spreadsheet</li>
+          <li><strong>uploads/</strong> — all product images</li>
+          <li><strong>manifest.json</strong> — backup metadata &amp; record counts</li>
+        </ul>
+      </div>
+
+      {% if db_size %}
+      <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;">
+        <i class="bi bi-database"></i>
+        Database size: <strong>{{ (db_size / 1024)|round(1) }} KB</strong>
+      </div>
+      {% endif %}
+
+      <a href="{{ url_for('backup_download') }}" class="btn-p" style="width:100%;justify-content:center;display:flex;gap:8px;">
+        <i class="bi bi-download"></i>
+        Download Full Backup
+      </a>
+    </div>
+  </div>
+
+  <!-- ── RESTORE column ── -->
+  <div class="ag-card">
+    <div class="ag-card-head">
+      <h6 class="ag-card-title">
+        <i class="bi bi-cloud-arrow-up" style="color:#d97706;"></i>
+        Restore from Backup
+      </h6>
+    </div>
+    <div class="ag-card-body">
+      <p style="font-size:.855rem;color:var(--ink3);margin-bottom:16px;">
+        Upload a previously downloaded backup ZIP to restore your products, campaigns, and images.
+      </p>
+
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r-sm);
+                  padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:#92400e;">
+        <strong style="display:block;margin-bottom:4px;">
+          <i class="bi bi-exclamation-triangle"></i> Before you restore
+        </strong>
+        <strong>Merge mode</strong> — adds/updates records from backup, keeps existing data intact.<br>
+        <strong>Overwrite mode</strong> — wipes current products &amp; campaigns first, then restores. Use with caution.
+      </div>
+
+      <form method="POST" action="{{ url_for('backup_restore') }}" enctype="multipart/form-data"
+            onsubmit="return confirmRestore(this)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="margin-bottom:12px;">
+          <label class="ag-label">Restore Mode</label>
+          <div style="display:flex;gap:12px;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.855rem;">
+              <input type="radio" name="restore_mode" value="merge" checked>
+              <span><strong>Merge</strong> <span style="color:var(--ink4);">(safe)</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.855rem;">
+              <input type="radio" name="restore_mode" value="overwrite">
+              <span><strong>Overwrite</strong> <span style="color:#ef4444;">(destructive)</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label class="ag-label">Backup ZIP File</label>
+          <input type="file" name="restore_file" accept=".zip" class="form-control"
+                 style="font-size:.855rem;margin-top:4px;" required>
+        </div>
+
+        <button type="submit" class="btn-p" style="background:#d97706;border-color:#d97706;
+                width:100%;justify-content:center;display:flex;gap:8px;">
+          <i class="bi bi-cloud-arrow-up"></i>
+          Restore Now
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Tips ── -->
+<div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--grn);
+            border-radius:var(--r-sm);padding:14px 18px;margin-top:18px;font-size:.8rem;color:var(--ink2);">
+  <strong style="color:var(--grn);display:block;margin-bottom:6px;">
+    <i class="bi bi-lightbulb"></i> Backup Tips
+  </strong>
+  <ul style="margin:0;padding-left:18px;line-height:2;">
+    <li>Download a backup before any major change (bulk import, campaign launch, server migration).</li>
+    <li>Backups include product images — they are complete and self-contained.</li>
+    <li>For product-only edits, use <strong>Products → Export to Excel</strong> instead (smaller file, faster).</li>
+    <li>Store backups in Google Drive, Dropbox, or email them to yourself.</li>
+  </ul>
+</div>
+
+<script>
+function confirmRestore(form) {
+  var mode = form.querySelector('input[name="restore_mode"]:checked').value;
+  if (mode === 'overwrite') {
+    return confirm(
+      '⚠️ OVERWRITE MODE\n\n' +
+      'This will DELETE all current products and campaigns, then replace them with the backup.\n\n' +
+      'This cannot be undone. Are you sure?'
+    );
+  }
+  return confirm('Restore backup in Merge mode?\n\nExisting records will be updated; new records will be added.');
+}
+</script>
+
+{% endblock %}
