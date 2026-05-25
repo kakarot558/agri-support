@@ -66,6 +66,10 @@
                       <i class="bi bi-speedometer2"></i> Dashboard
                   </a>
                   {% else %}
+                  <a href="{{ url_for('cart_view') }}" class="btn btn-outline-success btn-sm me-2 position-relative" id="navCartBtn" title="Cart">
+                      <i class="bi bi-cart3"></i>
+                      <span id="navCartCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.65rem;display:none;">0</span>
+                  </a>
                   <a href="{{ url_for('my_orders') }}" class="btn btn-admin me-2">
                       <i class="bi bi-bag-check"></i> My Orders
                   </a>
@@ -261,5 +265,28 @@
   }, {passive: true});
 })();
 </script>
+{% if current_user.is_authenticated and not current_user.is_admin %}
+<script>
+(function(){
+  function refreshCartCount(){
+    fetch("{{ url_for('cart_count_api') }}")
+      .then(r=>r.json())
+      .then(data=>{
+        var badge = document.getElementById('navCartCount');
+        if(!badge) return;
+        if(data.count > 0){
+          badge.textContent = data.count > 99 ? '99+' : data.count;
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }).catch(()=>{});
+  }
+  refreshCartCount();
+  // expose globally so add-to-cart JS can call it
+  window.refreshCartCount = refreshCartCount;
+})();
+</script>
+{% endif %}
 </body>
 </html>

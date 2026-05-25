@@ -474,6 +474,18 @@ img {
             </svg>
             Order Now
           </a>
+          {% if current_user.is_authenticated and not current_user.is_admin %}
+          <form action="{{ url_for('cart_add', product_id=product.id) }}" method="POST" class="cart-add-form" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="d-flex gap-2 align-items-center">
+              <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}"
+                     class="form-control form-control-sm" style="width:72px;" aria-label="Quantity">
+              <button type="submit" class="btn btn-success flex-grow-1">
+                <i class="bi bi-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </form>
+          {% endif %}
           {% else %}
           <button class="btn-order-msn" disabled>Out of Stock</button>
           {% endif %}

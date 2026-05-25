@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}My Cart — AgriFortress Supply Co.{% endblock %}
+
+{% block extra_css %}
+<style>
+.cart-page { padding: 40px 0 60px; }
+.cart-title { font-family:'Fraunces',serif; font-size:2rem; font-weight:900; color:var(--c800,#1a2e1a); margin-bottom:8px; }
+.cart-table { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,.07); }
+.cart-table thead th { background:#f6faf6; font-weight:700; font-size:.82rem; text-transform:uppercase; letter-spacing:.05em; color:#555; padding:14px 18px; border-bottom:2px solid #e5ede5; }
+.cart-table td { padding:16px 18px; vertical-align:middle; border-bottom:1px solid #f0f4f0; }
+.cart-table tbody tr:last-child td { border-bottom:none; }
+.cart-product-img { width:64px; height:64px; object-fit:cover; border-radius:10px; border:1px solid #e5ede5; background:#f6faf6; }
+.cart-product-name { font-weight:700; color:#1a2e1a; font-size:.97rem; }
+.cart-product-pack { font-size:.77rem; color:#888; margin-top:2px; }
+.qty-input { width:68px; text-align:center; border:1.5px solid #c8dcc8; border-radius:8px; padding:5px 6px; font-weight:700; }
+.qty-input:focus { outline:none; border-color:#4a9e6a; box-shadow:0 0 0 2px rgba(74,158,106,.15); }
+.cart-summary { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:28px 24px; position:sticky; top:80px; }
+.summary-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:.95rem; }
+.summary-row.total { font-size:1.2rem; font-weight:800; color:#1a2e1a; border-top:2px solid #e5ede5; padding-top:14px; margin-top:6px; }
+.btn-checkout { background:linear-gradient(135deg,#3d7d52,#2e5c3e); color:#fff; border:none; border-radius:100px; padding:14px 28px; font-weight:800; font-size:1rem; width:100%; transition:transform .2s,box-shadow .2s; }
+.btn-checkout:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(46,92,62,.4); color:#fff; }
+.btn-remove { background:none; border:none; color:#c0392b; font-size:1.1rem; cursor:pointer; opacity:.7; transition:opacity .15s; }
+.btn-remove:hover { opacity:1; }
+.empty-cart { text-align:center; padding:60px 20px; }
+.empty-cart-icon { font-size:4rem; margin-bottom:16px; opacity:.4; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-page">
+  <div class="container">
+    <h1 class="cart-title">🛒 My Cart</h1>
+    <p class="text-muted mb-4">Review your items before checkout.</p>
+
+    {% if items %}
+    <div class="row g-4">
+      <!-- Cart Items -->
+      <div class="col-lg-8">
+        <div class="cart-table">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="text-center">Unit Price</th>
+                <th class="text-center">Qty</th>
+                <th class="text-center">Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <!-- Product info -->
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    {% if item.product.image_path %}
+                    <img src="{{ url_for('public_image', product_id=item.product.id) }}"
+                         alt="{{ item.product.name }}" class="cart-product-img">
+                    {% else %}
+                    <div class="cart-product-img d-flex align-items-center justify-content-center text-muted" style="font-size:1.6rem;">🌾</div>
+                    {% endif %}
+                    <div>
+                      <div class="cart-product-name">{{ item.product.name }}</div>
+                      {% if item.product.packaging_type %}
+                      <div class="cart-product-pack"><i class="bi bi-box-seam"></i> {{ item.product.packaging_type }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <!-- Unit price -->
+                <td class="text-center fw-700">₱{{ "%.2f"|format(item.unit_price) }}</td>
+                <!-- Qty updater -->
+                <td class="text-center">
+                  <form action="{{ url_for('cart_update', product_id=item.product.id) }}" method="POST" class="d-inline-flex align-items-center gap-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="number" name="quantity" value="{{ item.quantity }}"
+                           min="1" max="{{ item.product.stock_quantity }}"
+                           class="qty-input"
+                           onchange="this.form.submit()">
+                  </form>
+                </td>
+                <!-- Line total -->
+                <td class="text-center fw-bold">₱{{ "%.2f"|format(item.line_total) }}</td>
+                <!-- Remove -->
+                <td class="text-center">
+                  <form action="{{ url_for('cart_remove', product_id=item.product.id) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-remove" title="Remove item">
+                      <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Clear cart -->
+        <div class="mt-3 d-flex gap-2">
+          <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Continue Shopping
+          </a>
+          <form action="{{ url_for('cart_clear') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm"
+                    onclick="return confirm('Clear all items from cart?')">
+              <i class="bi bi-trash"></i> Clear Cart
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="col-lg-4">
+        <div class="cart-summary">
+          <h5 class="fw-800 mb-3" style="font-family:'Fraunces',serif;">Order Summary</h5>
+          <div class="summary-row">
+            <span>Subtotal ({{ items|sum(attribute='quantity') }} item{{ 's' if items|sum(attribute='quantity') != 1 }})</span>
+            <span>₱{{ "%.2f"|format(subtotal) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Shipping</span>
+            <span>₱{{ "%.2f"|format(shipping_fee) }}</span>
+          </div>
+          <div class="summary-row total">
+            <span>Total</span>
+            <span>₱{{ "%.2f"|format(total) }}</span>
+          </div>
+          <a href="{{ url_for('cart_checkout') }}" class="btn-checkout mt-3 d-block text-center text-decoration-none">
+            <i class="bi bi-lock-fill me-1"></i> Proceed to Checkout
+          </a>
+          <p class="text-muted text-center mt-2" style="font-size:.78rem;">
+            <i class="bi bi-shield-check text-success"></i> Secure checkout &nbsp;·&nbsp; COD available
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Empty cart -->
+    <div class="empty-cart">
+      <div class="empty-cart-icon">🛒</div>
+      <h4 class="fw-700 text-muted">Your cart is empty</h4>
+      <p class="text-muted">Browse our products and add items to your cart.</p>
+      <a href="{{ url_for('index') }}" class="btn btn-success px-4 mt-2">
+        <i class="bi bi-grid me-1"></i> Shop Now
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

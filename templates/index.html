@@ -586,6 +586,15 @@
                 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn-product-view">
                   View Details <i class="bi bi-arrow-right"></i>
                 </a>
+                {% if current_user.is_authenticated and not current_user.is_admin and product.stock_quantity > 0 %}
+                <form action="{{ url_for('cart_add', product_id=product.id) }}" method="POST" class="mt-2 cart-add-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-success btn-sm w-100">
+                    <i class="bi bi-cart-plus"></i> Add to Cart
+                  </button>
+                </form>
+                {% endif %}
               </div>
             </div>
           </div>

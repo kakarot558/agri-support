@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% block title %}Checkout — AgriFortress Supply Co.{% endblock %}
+
+{% block extra_head %}
+<style>
+.order-page { background:var(--bg,#f6faf6); min-height:calc(100vh - 64px); padding:0 0 80px; }
+.order-banner {
+  background:linear-gradient(135deg,#15803d 0%,#16a34a 60%,#4a7da8 100%);
+  padding:20px 0; margin-bottom:0;
+}
+.ob-inner { max-width:980px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap; }
+.ob-icon  { width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0; }
+.ob-title { font-family:'Fraunces',serif;font-size:1.1rem;font-weight:900;color:#fff;margin:0 0 2px; }
+.ob-sub   { font-size:.78rem;color:rgba(255,255,255,.75);margin:0; }
+.order-container { max-width:980px;margin:0 auto;padding:24px 20px; }
+.order-grid { display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start; }
+@media(max-width:820px){ .order-grid{grid-template-columns:1fr;} .order-sidebar{order:-1;} }
+.ocard {
+  background:#fff;border-radius:16px;border:1.5px solid #e5e7eb;
+  margin-bottom:16px;overflow:hidden;
+  box-shadow:0 2px 12px rgba(30,45,61,.06);
+}
+.ocard-head {
+  display:flex;align-items:center;gap:10px;
+  padding:13px 18px;border-bottom:1.5px solid #e5e7eb;background:#fafcff;
+}
+.ocard-ico {
+  width:30px;height:30px;border-radius:8px;background:#16a34a;
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;
+}
+.ocard-head h3 { font-size:.84rem;font-weight:700;color:#111;margin:0; }
+.ocard-body { padding:16px 18px; }
+.fg{margin-bottom:12px;}
+.flbl{display:block;font-size:.71rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}
+.finp,.finp-ta{
+  width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:9px;
+  font-size:.9rem;color:#111;background:#fafbfc;font-family:inherit;
+  transition:.15s;box-sizing:border-box;
+}
+.finp-ta{resize:vertical;min-height:64px;}
+.finp:focus,.finp-ta:focus{outline:none;background:#fff;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.1);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:480px){.grid-2{grid-template-columns:1fr;}}
+.addr-ok-banner {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:11px 15px;margin-bottom:12px;
+}
+.addr-ok-banner .adr-left { display:flex;align-items:flex-start;gap:10px; }
+.addr-ok-banner .adr-text  { font-size:.84rem;color:#166534; }
+.addr-ok-banner .adr-text strong { display:block;font-size:.88rem;margin-bottom:2px; }
+.addr-warn-banner{display:flex;align-items:flex-start;gap:10px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:.84rem;color:#78350f;}
+.toggle-btn{background:none;border:none;color:#16a34a;font-size:.82rem;font-weight:700;cursor:pointer;padding:0;margin-bottom:10px;}
+.toggle-btn:hover{text-decoration:underline;}
+.addr-override{display:none;}
+.popt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:.15s;}
+.popt:has(input:checked){border-color:#16a34a;background:#f0fdf4;}
+.popt input{margin-top:3px;accent-color:#16a34a;}
+.popt label{cursor:pointer;font-size:.9rem;font-weight:600;color:#111;flex:1;}
+.popt label span{display:block;font-size:.75rem;font-weight:400;color:#6b7280;margin-top:2px;}
+.pay-info{background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 15px;margin-top:10px;display:flex;align-items:flex-start;gap:10px;}
+.pay-info-icon{font-size:1.4rem;flex-shrink:0;}
+.pay-info-title{font-size:.82rem;font-weight:700;color:#166534;margin-bottom:6px;}
+.pay-info-row{font-size:.82rem;color:#374151;margin-bottom:3px;display:flex;gap:6px;}
+.pay-info-row span{color:#6b7280;}
+.pay-info-note{font-size:.77rem;color:#6b7280;margin-top:5px;}
+.jnt-shipping-display{display:flex;align-items:center;gap:12px;padding:12px 15px;background:#f8faff;border:1.5px solid #dbeafe;border-radius:10px;}
+.jnt-ship-badge{background:#e03131;color:#fff;font-size:.72rem;font-weight:900;padding:3px 8px;border-radius:6px;flex-shrink:0;}
+.jnt-ship-info{flex:1;}
+.jnt-ship-name{font-size:.9rem;font-weight:700;color:#111;}
+.jnt-ship-meta{font-size:.75rem;color:#6b7280;margin-top:2px;}
+.jnt-ship-fee{font-size:1rem;font-weight:800;color:#1e3a5f;}
+.jnt-ship-note{margin-top:8px;font-size:.77rem;color:#6b7280;padding:8px 12px;background:#f1f5f9;border-radius:8px;}
+/* Sidebar summary */
+.cart-item-thumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;background:#f6faf6;}
+.cart-item-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4f0;}
+.cart-item-row:last-of-type{border-bottom:none;}
+.cart-item-name{font-size:.83rem;font-weight:600;color:#1a2e1a;flex:1;}
+.cart-item-qty{font-size:.77rem;color:#6b7280;}
+.cart-item-price{font-size:.85rem;font-weight:700;color:#1a2e1a;white-space:nowrap;}
+.pr-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:.88rem;}
+.pr-lbl{color:#6b7280;}
+.pr-val{font-weight:700;color:#1a2e1a;}
+.pr-total .pr-val{font-size:1.1rem;color:#15803d;}
+.btn-order{
+  width:100%;background:linear-gradient(135deg,#3d7d52,#2e5c3e);color:#fff;
+  border:none;border-radius:100px;padding:14px 24px;font-weight:800;font-size:1rem;
+  cursor:pointer;transition:transform .2s,box-shadow .2s;margin-top:12px;
+}
+.btn-order:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(46,92,62,.4);}
+.trust-strip{display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;}
+.trust-item{font-size:.72rem;color:#6b7280;display:flex;align-items:center;gap:4px;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="order-page">
+
+  <!-- Banner -->
+  <div class="order-banner">
+    <div class="ob-inner">
+      <div class="ob-icon">🛒</div>
+      <div>
+        <p class="ob-title">Checkout</p>
+        <p class="ob-sub">{{ items|sum(attribute='quantity') }} item(s) · ₱{{ "%.2f"|format(total) }} total</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="order-container">
+    <form action="{{ url_for('cart_checkout') }}" method="POST" id="checkoutForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="order-grid">
+
+        <!-- LEFT -->
+        <div>
+
+          <!-- Contact Details -->
+          <div class="ocard">
+            <div class="ocard-head">
+              <div class="ocard-ico"><i class="bi bi-person-fill"></i></div>
+              <h3>Your Details</h3>
+            </div>
+            <div class="ocard-body">
+              <div class="grid-2">
+                <div class="fg">
+                  <label class="flbl">Full Name *</label>
+                  <input name="customer_name" class="finp" required maxlength="200"
+                         value="{{ current_user.full_name or current_user.username }}"
+                         placeholder="Your name">
+                </div>
+                <div class="fg">
+                  <label class="flbl">Phone *</label>
+                  <input name="customer_phone" class="finp" required maxlength="50"
+                         value="{{ current_user.phone or '' }}"
+                         placeholder="09XX XXX XXXX">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0;">
+                <label class="flbl">Email <span style="font-weight:400;text-transform:none;font-size:.7rem;">(optional)</span></label>
+                <input name="customer_email" type="email" class="finp" maxlength="200"
+                       value="{{ current_user.email or '' }}"
+                       placeholder="juan@email.com">
+              </div>
+            </div>
+          </div>
+
+          <!-- Delivery Address -->
+          <div class="ocard">
+            <div class="ocard-head">
+              <div class="ocard-ico" style="background:#2d6a4f;"><i class="bi bi-geo-alt-fill"></i></div>
+              <h3>Delivery Address</h3>
+            </div>
+            <div class="ocard-body">
+              {% if current_user.has_address %}
+              <div class="addr-ok-banner">
+                <div class="adr-left">
+                  <i class="bi bi-check-circle-fill" style="color:#22c55e;font-size:1.1rem;margin-top:2px;flex-shrink:0;"></i>
+                  <div class="adr-text">
+                    <strong>{{ current_user.address_line }}</strong>
+                    {{ current_user.address_city }}{% if current_user.address_province %}, {{ current_user.address_province }}{% endif %}{% if current_user.address_postal %} {{ current_user.address_postal }}{% endif %}
+                  </div>
+                </div>
+                <a href="{{ url_for('profile') }}" target="_blank"><i class="bi bi-pencil"></i> Edit</a>
+              </div>
+              <button type="button" class="toggle-btn" onclick="toggleAddr(this)">
+                <i class="bi bi-plus-circle"></i> Use a different address for this order
+              </button>
+              <div class="addr-override" id="addrOverride">
+                <div class="fg">
+                  <label class="flbl">Street / Barangay</label>
+                  <textarea name="shipping_address" class="finp-ta"
+                            placeholder="Leave blank to use your saved address"></textarea>
+                </div>
+                <div class="grid-2">
+                  <div class="fg">
+                    <label class="flbl">City</label>
+                    <input name="city" class="finp" placeholder="Leave blank to use saved">
+                  </div>
+                  <div class="fg" style="margin-bottom:0;">
+                    <label class="flbl">Province</label>
+                    <input name="province" class="finp" placeholder="Leave blank to use saved">
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <div class="addr-warn-banner">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>No saved address — fill in below, or
+                  <a href="{{ url_for('profile') }}" style="color:#92400e;font-weight:800;" target="_blank">save it in Profile</a>
+                  to skip this next time.
+                </span>
+              </div>
+              <div class="fg">
+                <label class="flbl">Street / Barangay *</label>
+                <textarea name="shipping_address" class="finp-ta" required
+                          placeholder="e.g. 123 Rizal St., Brgy. San Isidro"></textarea>
+              </div>
+              <div class="grid-2">
+                <div class="fg">
+                  <label class="flbl">City / Municipality *</label>
+                  <input name="city" class="finp" required placeholder="Lipa City">
+                </div>
+                <div class="fg">
+                  <label class="flbl">Province</label>
+                  <input name="province" class="finp" placeholder="Batangas">
+                </div>
+              </div>
+              <div class="fg" style="max-width:150px;margin-bottom:0;">
+                <label class="flbl">Postal Code</label>
+                <input name="postal_code" class="finp" placeholder="4217" maxlength="10">
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Shipping Method -->
+          <div class="ocard">
+            <div class="ocard-head">
+              <div class="ocard-ico"><i class="bi bi-truck-front-fill"></i></div>
+              <h3>Shipping Method</h3>
+            </div>
+            <div class="ocard-body">
+              <input type="hidden" name="shipping_method" value="J&T">
+              <div class="jnt-shipping-display">
+                <div class="jnt-ship-badge">J&T</div>
+                <div class="jnt-ship-info">
+                  <div class="jnt-ship-name">J&T Express</div>
+                  <div class="jnt-ship-meta">2–3 business days · Nationwide delivery</div>
+                </div>
+                <div class="jnt-ship-fee">₱100.00</div>
+              </div>
+              <div class="jnt-ship-note">
+                <i class="bi bi-info-circle"></i>
+                Your parcel will be picked up and delivered by <strong>J&T Express</strong>. A tracking number will be provided once shipped.
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div class="ocard">
+            <div class="ocard-head">
+              <div class="ocard-ico"><i class="bi bi-credit-card-fill"></i></div>
+              <h3>Payment Method</h3>
+            </div>
+            <div class="ocard-body">
+              <div class="popt"><input type="radio" name="payment_method" id="p_cod" value="COD" checked><label for="p_cod">💵 Cash on Delivery (COD)<span>Pay when your order arrives</span></label></div>
+              <div class="popt"><input type="radio" name="payment_method" id="p_gcash" value="GCash"><label for="p_gcash">📱 GCash<span>Send to our GCash number after ordering</span></label></div>
+              <div class="popt"><input type="radio" name="payment_method" id="p_bank" value="Bank Transfer"><label for="p_bank">🏦 Bank Transfer<span>Direct bank deposit after ordering</span></label></div>
+
+              <div id="gcash-info" class="pay-info" style="display:none;">
+                <div class="pay-info-icon">📱</div>
+                <div>
+                  <div class="pay-info-title">Send GCash payment after placing your order</div>
+                  <div class="pay-info-row"><span>GCash Number:</span><strong>{{ gcash_number }}</strong></div>
+                  <div class="pay-info-row"><span>Account Name:</span><strong>{{ gcash_name }}</strong></div>
+                  <div class="pay-info-note">{{ payment_note }}</div>
+                  <div class="pay-info-note" style="color:#dc2626;">📸 Send your GCash screenshot to our Facebook page as proof of payment.</div>
+                </div>
+              </div>
+
+              <div id="bank-info" class="pay-info" style="display:none;">
+                <div class="pay-info-icon">🏦</div>
+                <div>
+                  <div class="pay-info-title">Deposit to our bank account after placing your order</div>
+                  <div class="pay-info-row"><span>Bank:</span><strong>{{ bank_name }}</strong></div>
+                  <div class="pay-info-row"><span>Account Number:</span><strong>{{ bank_account }}</strong></div>
+                  <div class="pay-info-row"><span>Account Name:</span><strong>{{ bank_account_name }}</strong></div>
+                  <div class="pay-info-note">{{ payment_note }}</div>
+                  <div class="pay-info-note" style="color:#dc2626;">📸 Send your deposit slip / screenshot to our Facebook page as proof of payment.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="ocard">
+            <div class="ocard-head">
+              <div class="ocard-ico"><i class="bi bi-chat-text-fill"></i></div>
+              <h3>Special Notes <span style="font-weight:400;font-size:.78rem;text-transform:none;letter-spacing:0;">(optional)</span></h3>
+            </div>
+            <div class="ocard-body">
+              <textarea name="notes" class="finp-ta" rows="3" style="margin-bottom:0;"
+                        placeholder="Delivery instructions, preferred variants, etc."
+                        maxlength="500"></textarea>
+            </div>
+          </div>
+
+        </div><!-- /left -->
+
+        <!-- RIGHT sidebar -->
+        <div class="order-sidebar">
+          <div class="ocard" style="position:sticky;top:80px;">
+            <div class="ocard-head">
+              <div class="ocard-ico" style="background:#3d5a80;"><i class="bi bi-bag-check-fill"></i></div>
+              <h3>Order Summary</h3>
+            </div>
+            <div class="ocard-body">
+
+              <!-- Cart items list -->
+              {% for item in items %}
+              <div class="cart-item-row">
+                {% if item.product.image_path %}
+                <img src="{{ url_for('public_image', product_id=item.product.id) }}"
+                     alt="{{ item.product.name }}" class="cart-item-thumb">
+                {% else %}
+                <div class="cart-item-thumb d-flex align-items-center justify-content-center" style="font-size:1.2rem;">🌾</div>
+                {% endif %}
+                <div class="cart-item-name">
+                  {{ item.product.name }}
+                  <span class="cart-item-qty">× {{ item.quantity }}</span>
+                </div>
+                <div class="cart-item-price">₱{{ "%.2f"|format(item.line_total) }}</div>
+              </div>
+              {% endfor %}
+
+              <div style="margin-top:12px;">
+                <div class="pr-row"><span class="pr-lbl">Subtotal</span><span class="pr-val">₱{{ "%.2f"|format(subtotal) }}</span></div>
+                <div class="pr-row"><span class="pr-lbl">Shipping (J&T)</span><span class="pr-val">₱{{ "%.2f"|format(shipping_fee) }}</span></div>
+                <div class="pr-row pr-total" style="border-top:2px solid #e5e7eb;margin-top:4px;padding-top:10px;">
+                  <span class="pr-lbl">Total</span>
+                  <span class="pr-val">₱{{ "%.2f"|format(total) }}</span>
+                </div>
+              </div>
+
+              <button class="btn-order" type="button" id="placeBtn" onclick="submitCheckout()">
+                <i class="bi bi-check-lg"></i> Place Order
+              </button>
+
+              <a href="{{ url_for('cart_view') }}" class="d-block text-center mt-2" style="font-size:.8rem;color:#6b7280;">
+                <i class="bi bi-arrow-left"></i> Back to Cart
+              </a>
+
+              <div class="trust-strip">
+                <span class="trust-item"><i class="bi bi-shield-check"></i> Secure</span>
+                <span class="trust-item"><i class="bi bi-truck"></i> Fast delivery</span>
+                <span class="trust-item"><i class="bi bi-headset"></i> Support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /order-grid -->
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAddr(btn){
+  var d = document.getElementById('addrOverride');
+  if(!d) return;
+  var open = d.style.display === 'block';
+  d.style.display = open ? 'none' : 'block';
+  btn.innerHTML = open
+    ? '<i class="bi bi-plus-circle"></i> Use a different address for this order'
+    : '<i class="bi bi-dash-circle"></i> Cancel — use saved address';
+}
+
+// Payment method visibility
+document.querySelectorAll('input[name="payment_method"]').forEach(function(r){
+  r.addEventListener('change', function(){
+    document.getElementById('gcash-info').style.display = this.value === 'GCash' ? 'flex' : 'none';
+    document.getElementById('bank-info').style.display  = this.value === 'Bank Transfer' ? 'flex' : 'none';
+  });
+});
+
+function submitCheckout(){
+  var f    = document.getElementById('checkoutForm');
+  var name = f.querySelector('[name=customer_name]').value.trim();
+  var phone= f.querySelector('[name=customer_phone]').value.trim();
+  if(!name || !phone){
+    alert('Please fill in your full name and phone number.');
+    return;
+  }
+  document.getElementById('placeBtn').disabled = true;
+  document.getElementById('placeBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Placing order…';
+  f.submit();
+}
+</script>
+{% endblock %}

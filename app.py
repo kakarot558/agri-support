@@ -78,7 +78,7 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
         "img-src 'self' data: blob:; "
-        "connect-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com;"
+        "connect-src 'self';"
     )
     return response
 
@@ -1944,16 +1944,8 @@ def pwa_manifest():
 def service_worker():
     sw = """
 self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
-self.addEventListener('fetch', e => {
-  // Skip non-GET and cross-origin requests — let the browser handle them directly.
-  // This prevents the service worker from intercepting CDN/font fetches which
-  // are blocked by connect-src 'self' when proxied through the SW.
-  if (e.request.method !== 'GET') return;
-  if (!e.request.url.startsWith(self.location.origin)) return;
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+self.addEventListener('fetch',   e => {
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
 """
     return Response(sw, mimetype='application/javascript')
@@ -2859,6 +2851,229 @@ def update_cod_status(order_id):
     db.session.commit()
     flash(f'COD status updated to {new_status}.', 'success')
     return redirect(url_for('admin_cod'))
+
+
+# ─── Cart Routes ──────────────────────────────────────────────────────────────
+
+def _get_cart():
+    """Return cart dict from session: { str(product_id): quantity }"""
+    return session.get('cart', {})
+
+def _save_cart(cart):
+    session['cart'] = cart
+    session.modified = True
+
+def _cart_summary():
+    """Return (items_list, subtotal) for the current cart."""
+    cart = _get_cart()
+    if not cart:
+        return [], 0.0
+    ids = [int(k) for k in cart.keys()]
+    products = {p.id: p for p in Product.query.filter(Product.id.in_(ids), Product.is_active == True).all()}
+    items = []
+    subtotal = 0.0
+    for pid_str, qty in list(cart.items()):
+        p = products.get(int(pid_str))
+        if not p:
+            continue
+        unit = p.discounted_price if (p.discount_percentage and p.discount_percentage > 0) else p.price
+        line = round(unit * qty, 2)
+        subtotal += line
+        items.append({'product': p, 'quantity': qty, 'unit_price': unit, 'line_total': line})
+    return items, round(subtotal, 2)
+
+
+@app.route('/cart')
+@login_required
+def cart_view():
+    if current_user.is_admin:
+        return redirect(url_for('admin_dashboard'))
+    items, subtotal = _cart_summary()
+    shipping_fee = 100.0 if items else 0.0
+    total = round(subtotal + shipping_fee, 2)
+    return render_template('cart.html', items=items, subtotal=subtotal,
+                           shipping_fee=shipping_fee, total=total)
+
+
+@app.route('/cart/add/<int:product_id>', methods=['POST'])
+@login_required
+def cart_add(product_id):
+    if current_user.is_admin:
+        return jsonify({'ok': False, 'msg': 'Admins cannot add to cart.'}), 403
+    product = Product.query.get_or_404(product_id)
+    if not product.is_active or product.stock_quantity < 1:
+        if request.is_json:
+            return jsonify({'ok': False, 'msg': 'Product unavailable.'}), 400
+        flash('Product is unavailable.', 'danger')
+        return redirect(request.referrer or url_for('index'))
+
+    try:
+        qty = int(request.form.get('quantity', request.json.get('quantity', 1) if request.is_json else 1))
+    except (ValueError, AttributeError):
+        qty = 1
+    if qty < 1:
+        qty = 1
+
+    cart = _get_cart()
+    pid_str = str(product_id)
+    current_qty = cart.get(pid_str, 0)
+    new_qty = current_qty + qty
+    if new_qty > product.stock_quantity:
+        new_qty = product.stock_quantity
+    cart[pid_str] = new_qty
+    _save_cart(cart)
+
+    cart_count = sum(cart.values())
+    if request.is_json:
+        return jsonify({'ok': True, 'cart_count': cart_count, 'msg': f'"{product.name}" added to cart!'})
+    flash(f'"{product.name}" added to cart!', 'success')
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.route('/cart/update/<int:product_id>', methods=['POST'])
+@login_required
+def cart_update(product_id):
+    cart = _get_cart()
+    pid_str = str(product_id)
+    try:
+        qty = int(request.form.get('quantity', 1))
+    except ValueError:
+        qty = 1
+    if qty < 1:
+        cart.pop(pid_str, None)
+    else:
+        product = Product.query.get(product_id)
+        if product and qty > product.stock_quantity:
+            qty = product.stock_quantity
+        cart[pid_str] = qty
+    _save_cart(cart)
+    flash('Cart updated.', 'success')
+    return redirect(url_for('cart_view'))
+
+
+@app.route('/cart/remove/<int:product_id>', methods=['POST'])
+@login_required
+def cart_remove(product_id):
+    cart = _get_cart()
+    cart.pop(str(product_id), None)
+    _save_cart(cart)
+    flash('Item removed from cart.', 'info')
+    return redirect(url_for('cart_view'))
+
+
+@app.route('/cart/clear', methods=['POST'])
+@login_required
+def cart_clear():
+    _save_cart({})
+    flash('Cart cleared.', 'info')
+    return redirect(url_for('cart_view'))
+
+
+@app.route('/cart/checkout', methods=['GET', 'POST'])
+@login_required
+def cart_checkout():
+    if current_user.is_admin:
+        return redirect(url_for('admin_dashboard'))
+    items, subtotal = _cart_summary()
+    if not items:
+        flash('Your cart is empty.', 'warning')
+        return redirect(url_for('cart_view'))
+
+    if request.method == 'POST':
+        try:
+            ship_method = 'J&T'
+            ship_fee    = 100.0
+            total       = round(subtotal + ship_fee, 2)
+
+            addr_line   = request.form.get('shipping_address', '').strip() or (current_user.address_line or '')
+            addr_city   = request.form.get('city', '').strip()             or (current_user.address_city or '')
+            addr_prov   = request.form.get('province', '').strip()         or (current_user.address_province or '')
+            addr_postal = request.form.get('postal_code', '').strip()      or (current_user.address_postal or '')
+
+            if not addr_line or not addr_city:
+                flash('Delivery address is required.', 'danger')
+                return redirect(url_for('cart_checkout'))
+
+            payment_method = request.form.get('payment_method', 'COD')
+            _cod_check = _get_shipping_service().validate_cod(total, payment_method)
+            if not _cod_check['ok']:
+                flash(_cod_check['reason'], 'warning')
+                return redirect(url_for('cart_checkout'))
+
+            order = Order(
+                user_id          = current_user.id,
+                customer_name    = request.form.get('customer_name', '').strip() or current_user.display_name,
+                customer_phone   = request.form.get('customer_phone', '').strip() or (current_user.phone or ''),
+                customer_email   = request.form.get('customer_email', '').strip() or (current_user.email or ''),
+                shipping_address = addr_line,
+                city             = addr_city,
+                province         = addr_prov,
+                postal_code      = addr_postal,
+                shipping_method  = ship_method,
+                payment_method   = payment_method,
+                subtotal         = subtotal,
+                shipping_fee     = ship_fee,
+                total_amount     = total,
+                notes            = request.form.get('notes', '').strip(),
+                status           = 'Pending',
+                payment_status   = 'Unpaid',
+            )
+            order.generate_order_number()
+            db.session.add(order)
+            db.session.flush()
+
+            for item in items:
+                p = item['product']
+                oi = OrderItem(
+                    order_id       = order.id,
+                    product_id     = p.id,
+                    product_name   = p.name,
+                    unit_price     = item['unit_price'],
+                    quantity       = item['quantity'],
+                    subtotal       = item['line_total'],
+                    packaging_type = p.packaging_type or '',
+                )
+                db.session.add(oi)
+                p.stock_quantity -= item['quantity']
+
+            event = OrderEvent(
+                order_id = order.id,
+                status   = 'Pending',
+                actor    = order.customer_name,
+                note     = f'Order placed via cart. {len(items)} item(s). Payment: {payment_method}.',
+            )
+            db.session.add(event)
+            db.session.commit()
+
+            _save_cart({})  # clear cart after successful order
+
+            log_automation('order_placed', 'success',
+                           f'Cart order {order.order_number} — {len(items)} item(s)')
+
+            return redirect(url_for('order_confirmation', order_number=order.order_number))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error placing order: {e}', 'danger')
+            return redirect(url_for('cart_checkout'))
+
+    return render_template('cart_checkout.html',
+        items=items, subtotal=subtotal, shipping_fee=100.0,
+        total=round(subtotal + 100.0, 2),
+        gcash_number=app.config.get('GCASH_NUMBER', ''),
+        gcash_name=app.config.get('GCASH_NAME', ''),
+        bank_name=app.config.get('BANK_NAME', ''),
+        bank_account=app.config.get('BANK_ACCOUNT', ''),
+        bank_account_name=app.config.get('BANK_ACCOUNT_NAME', ''),
+        payment_note=app.config.get('PAYMENT_REFERENCE_NOTE', ''),
+    )
+
+
+@app.route('/api/cart/count')
+@login_required
+def cart_count_api():
+    cart = _get_cart()
+    return jsonify({'count': sum(cart.values())})
 
 
 if __name__ == '__main__':
